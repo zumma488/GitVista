@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import type { Component } from 'vue'
+import PrimeContextMenu from 'primevue/contextmenu'
 
 export interface MenuItem {
   label: string
@@ -10,158 +11,71 @@ export interface MenuItem {
   divider?: boolean
 }
 
-defineProps<{
+const props = defineProps<{
   items: MenuItem[]
 }>()
 
-const emit = defineEmits<{
-  close: []
-}>()
+const menuRef = ref<InstanceType<typeof PrimeContextMenu>>()
 
-const visible = ref(false)
-const x = ref(0)
-const y = ref(0)
-const menuRef = ref<HTMLElement>()
-
-function open(event: MouseEvent) {
-  x.value = event.clientX
-  y.value = event.clientY
-  visible.value = true
-
-  nextTick(() => {
-    if (!menuRef.value) return
-    const rect = menuRef.value.getBoundingClientRect()
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-
-    if (x.value + rect.width > vw) {
-      x.value = vw - rect.width - 4
+const primeItems = computed(() => {
+  return props.items.map((item, index) => {
+    if (item.divider) {
+      return { separator: true }
     }
-    if (y.value + rect.height > vh) {
-      y.value = vh - rect.height - 4
+    return {
+      key: String(index),
+      label: item.label,
+      command: () => {
+        item.action()
+        close()
+      },
+      originalItem: item
     }
   })
+})
+
+function open(event: MouseEvent) {
+  menuRef.value?.show(event)
 }
 
 function close() {
-  visible.value = false
-  emit('close')
+  menuRef.value?.hide()
 }
-
-function handleClick(item: MenuItem) {
-  if (item.divider) return
-  item.action()
-  close()
-}
-
-function handleClickOutside(e: MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
-    close()
-  }
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    close()
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', handleClickOutside, true)
-  document.addEventListener('keydown', handleKeydown, true)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', handleClickOutside, true)
-  document.removeEventListener('keydown', handleKeydown, true)
-})
 
 defineExpose({ open, close })
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="visible"
-      ref="menuRef"
-      class="context-menu"
-      :style="{ left: x + 'px', top: y + 'px' }"
-    >
-      <template v-for="(item, idx) in items" :key="idx">
-        <div v-if="item.divider" class="context-menu-divider" />
-        <button
-          v-else
-          class="context-menu-item"
-          :class="{ danger: item.danger }"
-          @click="handleClick(item)"
-        >
-          <component v-if="item.icon" :is="item.icon" :size="14" class="context-menu-icon" />
-          <span>{{ item.label }}</span>
-        </button>
-      </template>
-    </div>
-  </Teleport>
+  <PrimeContextMenu ref="menuRef" :model="primeItems" class="custom-ctx-menu">
+    <template #item="{ item, props }">
+      <a v-ripple class="flex items-center px-3 py-2 cursor-pointer w-full" v-bind="props.action" :class="{ 'text-red-500': item.originalItem?.danger }">
+        <component :is="item.originalItem?.icon" v-if="item.originalItem?.icon" :size="14" style="margin-right: 8px;" />
+        <span style="font-size: 12px;">{{ item.label }}</span>
+      </a>
+    </template>
+  </PrimeContextMenu>
 </template>
 
 <style scoped>
-.context-menu {
-  position: fixed;
-  z-index: 10000;
-  min-width: 180px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: 4px 0;
-  animation: ctx-fade-in 0.1s ease;
+.custom-ctx-menu :deep(.p-menuitem-link) {
+  padding: 0 !important;
 }
-
-@keyframes ctx-fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.context-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 12px;
-  color: var(--text-primary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
+.custom-ctx-menu :deep(.p-menuitem-content) {
   transition: background-color 0.1s;
-  text-align: left;
 }
-
-.context-menu-item:hover {
-  background: var(--bg-hover);
+.custom-ctx-menu :deep(.p-menuitem-content:hover) {
+  background: var(--bg-hover) !important;
 }
-
-.context-menu-item.danger {
-  color: var(--accent-red);
+.text-red-500 {
+  color: var(--accent-red) !important;
 }
-
-.context-menu-item.danger:hover {
-  background: rgba(248, 81, 73, 0.12);
+.text-red-500:hover {
+  background: rgba(248, 81, 73, 0.12) !important;
 }
-
-.context-menu-icon {
-  flex-shrink: 0;
-  opacity: 0.8;
-}
-
-.context-menu-divider {
-  height: 1px;
-  margin: 4px 8px;
-  background: var(--border-default);
-}
+.flex { display: flex; }
+.items-center { align-items: center; }
+.cursor-pointer { cursor: pointer; }
+.w-full { width: 100%; }
+.px-3 { padding-left: 12px; padding-right: 12px; }
+.py-2 { padding-top: 6px; padding-bottom: 6px; }
 </style>

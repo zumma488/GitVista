@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Button from 'primevue/button'
 
 const visible = ref(false)
 const branchName = ref('')
-const inputRef = ref<HTMLInputElement>()
+const inputRef = ref()
 
 const emit = defineEmits<{
   (e: 'submit', name: string): void
@@ -13,7 +16,8 @@ function show() {
   visible.value = true
   branchName.value = ''
   nextTick(() => {
-    inputRef.value?.focus()
+    // PrimeVue InputText element is likely available via $el
+    inputRef.value?.$el?.focus()
   })
 }
 
@@ -33,109 +37,33 @@ defineExpose({ show })
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="visible" class="dialog-overlay">
-      <div class="dialog">
-        <div class="dialog-header">新建分支</div>
-        <div class="dialog-body">
-          <p class="dialog-text">请输入新分支的名称：</p>
-          <input
-            ref="inputRef"
-            v-model="branchName"
-            type="text"
-            class="branch-input"
-            placeholder="分支名称"
-            @keyup.enter="handleSubmit"
-            @keyup.escape="handleCancel"
-          />
-          <div class="dialog-actions">
-            <button class="btn btn-secondary" @click="handleCancel">
-              取消
-            </button>
-            <button class="btn btn-primary" :disabled="!branchName.trim()" @click="handleSubmit">
-              创建分支
-            </button>
-          </div>
-        </div>
+  <Dialog v-model:visible="visible" modal header="新建分支" :style="{ width: '360px' }" :draggable="false">
+    <div class="pt-2">
+      <p class="text-sm text-surface-500 mb-3">请输入新分支的名称：</p>
+      <InputText
+        ref="inputRef"
+        v-model="branchName"
+        class="w-full mb-4"
+        placeholder="分支名称"
+        @keyup.enter="handleSubmit"
+      />
+      <div class="flex justify-end gap-2 mt-2">
+        <Button label="取消" severity="secondary" variant="text" @click="handleCancel" />
+        <Button label="创建分支" :disabled="!branchName.trim()" @click="handleSubmit" />
       </div>
     </div>
-  </Teleport>
+  </Dialog>
 </template>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  animation: overlay-in 0.15s ease;
-}
-
-.dialog {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  width: 360px;
-  animation: dialog-in 0.2s ease;
-}
-
-.dialog-header {
-  padding: 16px 20px 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.dialog-body {
-  padding: 12px 20px 20px;
-}
-
-.dialog-text {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-}
-
-.branch-input {
-  width: 100%;
-  padding: 8px 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.15s;
-  margin-bottom: 16px;
-}
-
-.branch-input:focus {
-  border-color: var(--accent-blue);
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-@keyframes overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes dialog-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
+.pt-2 { padding-top: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mt-2 { margin-top: 0.5rem; }
+.w-full { width: 100%; box-sizing: border-box; }
+.flex { display: flex; }
+.justify-end { justify-content: flex-end; }
+.gap-2 { gap: 0.5rem; }
+.text-sm { font-size: 13px; }
+.text-surface-500 { color: var(--text-secondary); }
 </style>

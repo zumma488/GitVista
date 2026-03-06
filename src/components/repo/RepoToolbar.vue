@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useRepoStore } from '@/stores/repo'
+import Button from 'primevue/button'
 import {
   ArrowLeft,
   GitBranch,
@@ -26,9 +27,9 @@ function repoName(): string {
 <template>
   <div class="toolbar">
     <div class="toolbar-left">
-      <button class="btn-icon" title="返回项目列表" @click="goBack">
+      <Button variant="text" severity="secondary" aria-label="返回项目列表" title="返回项目列表" @click="goBack" class="!px-2 !py-2">
         <ArrowLeft :size="18" />
-      </button>
+      </Button>
       <span class="toolbar-divider" />
       <span class="repo-name">{{ repoName() }}</span>
 
@@ -39,42 +40,50 @@ function repoName(): string {
     </div>
 
     <div class="toolbar-right">
-      <button
-        class="btn btn-secondary"
+      <Button
+        severity="secondary"
+        variant="outlined"
         :disabled="repo.operating"
         title="Fetch"
         @click="repo.fetch()"
+        class="!py-1 !px-3 h-8 text-sm"
       >
-        <RefreshCw :size="14" :class="{ spinning: repo.operating }" />
+        <RefreshCw :size="14" :class="{ spinning: repo.operating }" class="mr-2" />
         Fetch
-      </button>
-      <button
-        class="btn btn-secondary"
+      </Button>
+      <Button
+        severity="secondary"
+        variant="outlined"
         :disabled="repo.operating"
         title="Pull"
         @click="repo.pull()"
+        class="!py-1 !px-3 h-8 text-sm"
       >
-        <ArrowDownToLine :size="14" />
+        <ArrowDownToLine :size="14" class="mr-2" />
         Pull
-      </button>
-      <button
-        class="btn btn-secondary"
+      </Button>
+      <Button
+        severity="secondary"
+        variant="outlined"
         :disabled="repo.operating"
         title="Push"
         @click="repo.push()"
+        class="!py-1 !px-3 h-8 text-sm"
       >
-        <ArrowUpFromLine :size="14" />
+        <ArrowUpFromLine :size="14" class="mr-2" />
         Push
-      </button>
+      </Button>
       <span class="toolbar-divider" />
-      <button
-        class="btn btn-ghost"
+      <Button
+        variant="text"
+        severity="secondary"
         title="在 VSCode 中打开"
         @click="repo.openInVscode()"
+        class="!py-1 !px-3 h-8 text-sm"
       >
-        <Code2 :size="14" />
+        <Code2 :size="14" class="mr-2" />
         VSCode
-      </button>
+      </Button>
     </div>
   </div>
 </template>
@@ -97,6 +106,10 @@ function repoName(): string {
   align-items: center;
   gap: 6px;
 }
+
+.mr-2 { margin-right: 0.5rem; }
+.h-8 { height: 2rem; }
+.text-sm { font-size: 0.875rem; }
 
 .toolbar-divider {
   width: 1px;

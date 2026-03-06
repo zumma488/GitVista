@@ -4,6 +4,9 @@ import { useRepoStore } from '@/stores/repo'
 import { GitCommitHorizontal, Code2, User, Calendar, Search, CherryIcon, Undo2, Copy } from 'lucide-vue-next'
 import ContextMenu from '@/components/ContextMenu.vue'
 import type { MenuItem } from '@/components/ContextMenu.vue'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import VirtualScroller from 'primevue/virtualscroller'
 
 const repo = useRepoStore()
 const searchQuery = ref('')
@@ -76,43 +79,54 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
     <!-- 搜索栏 -->
     <div class="history-search">
       <Search :size="13" class="search-icon" />
-      <input
+      <InputText
         v-model="searchQuery"
-        class="search-input"
+        class="search-input w-full"
         placeholder="搜索提交信息..."
       />
     </div>
 
     <!-- 提交列表 -->
-    <div class="commit-list">
-      <div
-        v-for="commit in repo.commits"
-        :key="commit.hash"
-        class="commit-item"
-        :class="{ selected: repo.selectedCommitHash === commit.hash }"
-        @click="repo.selectCommit(commit.hash)"
-        @contextmenu.prevent="showCommitCtxMenu($event, commit.hash)"
+    <div class="commit-list-container">
+      <VirtualScroller
+        v-if="repo.commits.length > 0"
+        :items="repo.commits"
+        :itemSize="56"
+        class="h-full w-full scroller-custom"
       >
-        <div class="commit-dot" />
-        <div class="commit-line" />
-        <div class="commit-content">
-          <div class="commit-header">
-            <span class="commit-message">{{ commit.message }}</span>
-            <span class="commit-hash">{{ commit.short_hash }}</span>
+        <template v-slot:item="{ item: commit, options }">
+          <div
+            class="commit-item"
+            :class="{
+              selected: repo.selectedCommitHash === commit.hash,
+              'is-first': options.index === 0,
+              'is-last': options.index === repo.commits.length - 1
+            }"
+            @click="repo.selectCommit(commit.hash)"
+            @contextmenu.prevent="showCommitCtxMenu($event, commit.hash)"
+          >
+            <div class="commit-dot" />
+            <div class="commit-line" />
+            <div class="commit-content">
+              <div class="commit-header">
+                <span class="commit-message">{{ commit.message }}</span>
+                <span class="commit-hash">{{ commit.short_hash }}</span>
+              </div>
+              <div class="commit-meta">
+                <span class="commit-author">
+                  <User :size="11" />
+                  {{ commit.author }}
+                </span>
+                <span class="commit-date">
+                  <Calendar :size="11" />
+                  {{ formatDate(commit.date) }}
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="commit-meta">
-            <span class="commit-author">
-              <User :size="11" />
-              {{ commit.author }}
-            </span>
-            <span class="commit-date">
-              <Calendar :size="11" />
-              {{ formatDate(commit.date) }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div v-if="repo.commits.length === 0" class="empty-hint">暂无提交历史</div>
+        </template>
+      </VirtualScroller>
+      <div v-else class="empty-hint">暂无提交历史</div>
     </div>
 
     <!-- 提交详情 -->
@@ -121,20 +135,22 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
         <GitCommitHorizontal :size="14" />
         <span>提交详情</span>
         <span class="detail-hash">{{ repo.selectedCommitHash.substring(0, 10) }}</span>
-        <button
-          class="btn-icon detail-action"
+        <Button
+          variant="text" severity="secondary"
+          class="!p-1 h-6 w-6 detail-action ml-2"
           title="Cherry-pick 此提交"
           @click="repo.cherryPick(repo.selectedCommitHash!)"
         >
           <CherryIcon :size="13" />
-        </button>
-        <button
-          class="btn-icon detail-action"
+        </Button>
+        <Button
+          variant="text" severity="secondary"
+          class="!p-1 h-6 w-6 detail-action"
           title="Revert 此提交"
           @click="repo.revertCommit(repo.selectedCommitHash!)"
         >
           <Undo2 :size="13" />
-        </button>
+        </Button>
       </div>
       <div class="detail-files">
         <div
@@ -147,13 +163,14 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
             {{ statusIcon(file.status) }}
           </span>
           <span class="detail-file-path">{{ file.path }}</span>
-          <button
-            class="btn-icon file-action"
+          <Button
+            variant="text" severity="secondary"
+            class="!p-1 h-6 w-6 file-action"
             title="在 VSCode 中查看"
             @click.stop="repo.openInVscode(file.path)"
           >
             <Code2 :size="12" />
-          </button>
+          </Button>
         </div>
         <div v-if="repo.selectedCommitFiles.length === 0" class="empty-hint">无文件变更</div>
       </div>
@@ -193,12 +210,14 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
 }
 
 .search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  font-size: 12px;
+  /* 覆盖 PrimeVue InputText 的默认样式及背景 */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  outline: none !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
   min-width: 0;
 }
 
@@ -206,11 +225,20 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   color: var(--text-muted);
 }
 
-.commit-list {
+.commit-list-container {
   flex: 1;
-  overflow-y: auto;
   min-height: 0;
 }
+
+.scroller-custom {
+  border: none !important;
+}
+
+.h-full { height: 100%; }
+.w-full { width: 100%; box-sizing: border-box; }
+.h-6 { height: 1.5rem; }
+.w-6 { width: 1.5rem; }
+.ml-2 { margin-left: 0.5rem; }
 
 .commit-item {
   display: flex;
@@ -219,6 +247,8 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   position: relative;
   cursor: pointer;
   transition: background-color 0.1s;
+  height: 56px;
+  box-sizing: border-box;
 }
 
 .commit-item:hover {
@@ -241,7 +271,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   flex-shrink: 0;
 }
 
-.commit-item:first-child .commit-dot {
+.commit-item.is-first .commit-dot {
   background: var(--accent-green);
 }
 
@@ -254,7 +284,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   background: var(--border-default);
 }
 
-.commit-item:last-child .commit-line {
+.commit-item.is-last .commit-line {
   display: none;
 }
 
@@ -313,7 +343,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
 
 .commit-detail {
   flex-shrink: 0;
-  max-height: 35%;
+  max-height: 45%;
   border-top: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
@@ -343,7 +373,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
 }
 
 .detail-action:hover {
-  color: var(--accent-blue) !important;
+  color: var(--text-primary) !important;
 }
 
 .detail-files {

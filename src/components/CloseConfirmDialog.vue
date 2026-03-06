@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 
 const visible = ref(false)
 const rememberChoice = ref(false)
@@ -34,111 +37,32 @@ defineExpose({ show })
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="visible" class="dialog-overlay" @click.self="visible = false">
-      <div class="dialog">
-        <div class="dialog-header">关闭窗口</div>
-        <div class="dialog-body">
-          <p class="dialog-text">请选择关闭窗口时的操作：</p>
-          <div class="dialog-actions">
-            <button class="btn btn-primary" @click="handleMinimize">
-              最小化到托盘
-            </button>
-            <button class="btn btn-danger" @click="handleExit">
-              退出程序
-            </button>
-          </div>
-          <label class="remember-label">
-            <input v-model="rememberChoice" type="checkbox" class="remember-checkbox" />
-            <span>记住我的选择</span>
-          </label>
-        </div>
+  <Dialog v-model:visible="visible" modal header="关闭窗口" :style="{ width: '360px', maxWidth: '420px' }" :draggable="false">
+    <div class="pt-2">
+      <p class="text-sm text-surface-500 mb-4">请选择关闭窗口时的操作：</p>
+      <div class="flex gap-3 mb-4">
+        <Button label="最小化到托盘" severity="primary" class="flex-1" @click="handleMinimize" />
+        <Button label="退出程序" severity="danger" class="flex-1" @click="handleExit" />
+      </div>
+      <div class="flex items-center gap-2 mt-4">
+        <Checkbox v-model="rememberChoice" binary inputId="remember" />
+        <label for="remember" class="text-sm text-surface-500 cursor-pointer select-none">记住我的选择</label>
       </div>
     </div>
-  </Teleport>
+  </Dialog>
 </template>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  animation: overlay-in 0.15s ease;
-}
-
-.dialog {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  min-width: 360px;
-  max-width: 420px;
-  animation: dialog-in 0.2s ease;
-}
-
-.dialog-header {
-  padding: 16px 20px 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.dialog-body {
-  padding: 12px 20px 20px;
-}
-
-.dialog-text {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-}
-
-.dialog-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.dialog-actions .btn {
-  flex: 1;
-  justify-content: center;
-  padding: 8px 16px;
-}
-
-.remember-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.remember-checkbox {
-  accent-color: var(--accent-blue);
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-}
-
-@keyframes overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes dialog-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
+.pt-2 { padding-top: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mt-4 { margin-top: 1rem; }
+.flex { display: flex; }
+.flex-1 { flex: 1; justify-content: center; }
+.items-center { align-items: center; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.cursor-pointer { cursor: pointer; }
+.select-none { user-select: none; }
+.text-sm { font-size: 13px; }
+.text-surface-500 { color: var(--text-secondary); }
 </style>

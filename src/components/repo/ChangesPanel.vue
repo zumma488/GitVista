@@ -15,6 +15,9 @@ import {
 import type { FileChange } from '@/types'
 import ContextMenu from '@/components/ContextMenu.vue'
 import type { MenuItem } from '@/components/ContextMenu.vue'
+import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
+import VirtualScroller from 'primevue/virtualscroller'
 
 const repo = useRepoStore()
 const amendMode = ref(false)
@@ -87,38 +90,41 @@ function openFileInVscode(file: FileChange) {
         <ChevronDown :size="14" />
         <span class="section-title">已暂存的更改</span>
         <span class="file-count">{{ repo.stagedFiles.length }}</span>
-        <button
+        <Button
           v-if="repo.stagedFiles.length > 0"
-          class="btn-icon"
+          variant="text" severity="secondary"
           title="取消暂存全部"
           @click="repo.unstageAll()"
+          class="!p-1 h-6 w-6"
         >
           <Minus :size="13" />
-        </button>
+        </Button>
       </div>
-      <div class="file-list">
-        <div
-          v-for="file in repo.stagedFiles"
-          :key="'staged-' + file.path"
-          class="file-item"
-          @dblclick="openFileInVscode(file)"
-          @contextmenu.prevent="showStagedCtxMenu($event, file)"
-        >
-          <span class="file-status" :style="{ color: statusColor(file.status) }">
-            {{ statusIcon(file.status) }}
-          </span>
-          <span class="file-dir">{{ fileDir(file.path) }}</span>
-          <span class="file-name">{{ fileName(file.path) }}</span>
-          <div class="file-actions">
-            <button class="btn-icon" title="在 VSCode 中查看" @click.stop="openFileInVscode(file)">
-              <Code2 :size="12" />
-            </button>
-            <button class="btn-icon" title="取消暂存" @click.stop="repo.unstageFiles([file.path])">
-              <Minus :size="12" />
-            </button>
-          </div>
-        </div>
-        <div v-if="repo.stagedFiles.length === 0" class="empty-hint">暂无已暂存的文件</div>
+      <div class="file-list-container">
+        <VirtualScroller v-if="repo.stagedFiles.length > 0" :items="repo.stagedFiles" :itemSize="28" class="h-full w-full scroller-custom">
+          <template v-slot:item="{ item: file }">
+            <div
+              class="file-item"
+              @dblclick="openFileInVscode(file)"
+              @contextmenu.prevent="showStagedCtxMenu($event, file)"
+            >
+              <span class="file-status" :style="{ color: statusColor(file.status) }">
+                {{ statusIcon(file.status) }}
+              </span>
+              <span class="file-dir">{{ fileDir(file.path) }}</span>
+              <span class="file-name">{{ fileName(file.path) }}</span>
+              <div class="file-actions">
+                <Button variant="text" severity="secondary" class="!p-1 h-6 w-6" title="在 VSCode 中查看" @click.stop="openFileInVscode(file)">
+                  <Code2 :size="12" />
+                </Button>
+                <Button variant="text" severity="secondary" class="!p-1 h-6 w-6" title="取消暂存" @click.stop="repo.unstageFiles([file.path])">
+                  <Minus :size="12" />
+                </Button>
+              </div>
+            </div>
+          </template>
+        </VirtualScroller>
+        <div v-else class="empty-hint">暂无已暂存的文件</div>
       </div>
     </div>
 
@@ -128,99 +134,109 @@ function openFileInVscode(file: FileChange) {
         <ChevronDown :size="14" />
         <span class="section-title">未暂存的更改</span>
         <span class="file-count">{{ repo.unstagedFiles.length }}</span>
-        <button
+        <Button
           v-if="repo.unstagedFiles.length > 0"
-          class="btn-icon"
+          variant="text" severity="secondary"
           title="丢弃所有更改"
           @click="repo.discardAllChanges()"
+          class="!p-1 h-6 w-6"
         >
           <Trash2 :size="13" />
-        </button>
-        <button
+        </Button>
+        <Button
           v-if="repo.unstagedFiles.length > 0"
-          class="btn-icon"
+          variant="text" severity="secondary"
           title="暂存全部"
           @click="repo.stageAll()"
+          class="!p-1 h-6 w-6"
         >
           <Plus :size="13" />
-        </button>
+        </Button>
       </div>
-      <div class="file-list">
-        <div
-          v-for="file in repo.unstagedFiles"
-          :key="'unstaged-' + file.path"
-          class="file-item"
-          @dblclick="openFileInVscode(file)"
-          @contextmenu.prevent="showUnstagedCtxMenu($event, file)"
-        >
-          <span class="file-status" :style="{ color: statusColor(file.status) }">
-            {{ statusIcon(file.status) }}
-          </span>
-          <span class="file-dir">{{ fileDir(file.path) }}</span>
-          <span class="file-name">{{ fileName(file.path) }}</span>
-          <div class="file-actions">
-            <button class="btn-icon" title="在 VSCode 中查看" @click.stop="openFileInVscode(file)">
-              <Code2 :size="12" />
-            </button>
-            <button class="btn-icon" title="丢弃更改" @click.stop="repo.discardChanges([file.path])">
-              <Undo2 :size="12" />
-            </button>
-            <button class="btn-icon" title="暂存" @click.stop="repo.stageFiles([file.path])">
-              <Plus :size="12" />
-            </button>
-          </div>
-        </div>
-        <div v-if="repo.unstagedFiles.length === 0" class="empty-hint">工作区干净，没有更改</div>
+      <div class="file-list-container">
+        <VirtualScroller v-if="repo.unstagedFiles.length > 0" :items="repo.unstagedFiles" :itemSize="28" class="h-full w-full scroller-custom">
+          <template v-slot:item="{ item: file }">
+            <div
+              class="file-item"
+              @dblclick="openFileInVscode(file)"
+              @contextmenu.prevent="showUnstagedCtxMenu($event, file)"
+            >
+              <span class="file-status" :style="{ color: statusColor(file.status) }">
+                {{ statusIcon(file.status) }}
+              </span>
+              <span class="file-dir">{{ fileDir(file.path) }}</span>
+              <span class="file-name">{{ fileName(file.path) }}</span>
+              <div class="file-actions">
+                <Button variant="text" severity="secondary" class="!p-1 h-6 w-6" title="在 VSCode 中查看" @click.stop="openFileInVscode(file)">
+                  <Code2 :size="12" />
+                </Button>
+                <Button variant="text" severity="secondary" class="!p-1 h-6 w-6" title="丢弃更改" @click.stop="repo.discardChanges([file.path])">
+                  <Undo2 :size="12" />
+                </Button>
+                <Button variant="text" severity="secondary" class="!p-1 h-6 w-6" title="暂存" @click.stop="repo.stageFiles([file.path])">
+                  <Plus :size="12" />
+                </Button>
+              </div>
+            </div>
+          </template>
+        </VirtualScroller>
+        <div v-else class="empty-hint">工作区干净，没有更改</div>
       </div>
     </div>
 
     <!-- 提交区域 -->
     <div class="commit-area">
-      <textarea
+      <Textarea
         v-model="repo.commitMessage"
-        class="commit-input"
+        class="commit-input w-full"
         :placeholder="amendMode ? '修改上次提交信息...' : '输入提交信息...'"
         rows="3"
+        autoResize
         @keydown.ctrl.enter="amendMode ? repo.commitAmend(repo.commitMessage) : repo.commit()"
         @keydown.meta.enter="amendMode ? repo.commitAmend(repo.commitMessage) : repo.commit()"
       />
-      <div class="commit-actions">
-        <div class="commit-options">
-          <button
-            class="btn-icon"
-            :class="{ active: amendMode }"
+      <div class="commit-actions flex items-center gap-2 mt-2">
+        <div class="commit-options flex gap-1">
+          <Button
+            variant="text"
+            severity="secondary"
+            :class="{ '!text-primary-500 !bg-primary-50 dark:!bg-primary-900': amendMode }"
             title="修改上次提交 (Amend)"
             @click="amendMode = !amendMode"
+            class="!p-2"
           >
-            <PenLine :size="13" />
-          </button>
-          <button
-            class="btn-icon"
+            <PenLine :size="14" />
+          </Button>
+          <Button
+            variant="text"
+            severity="secondary"
             title="撤销上次提交"
             :disabled="repo.operating"
             @click="repo.undoLastCommit()"
+            class="!p-2"
           >
-            <RotateCcw :size="13" />
-          </button>
+            <RotateCcw :size="14" />
+          </Button>
         </div>
-        <button
+        <Button
           v-if="amendMode"
-          class="btn btn-secondary commit-btn"
+          severity="secondary"
           :disabled="!repo.commitMessage.trim() || repo.operating"
           @click="repo.commitAmend(repo.commitMessage)"
+          class="flex-1"
         >
-          <PenLine :size="14" />
+          <PenLine :size="14" class="mr-2" />
           Amend
-        </button>
-        <button
+        </Button>
+        <Button
           v-else
-          class="btn btn-primary commit-btn"
           :disabled="repo.stagedFiles.length === 0 || !repo.commitMessage.trim() || repo.operating"
           @click="repo.commit()"
+          class="flex-1"
         >
-          <CheckCircle2 :size="14" />
+          <CheckCircle2 :size="14" class="mr-2" />
           提交 ({{ repo.stagedFiles.length }} 个文件)
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -268,17 +284,35 @@ function openFileInVscode(file: FileChange) {
   line-height: 18px;
 }
 
-.file-list {
+.file-list-container {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0; /* Important for flex child with scrolling */
 }
+
+/* 覆盖 VirtualScroller 的默认样式，去边框，高度直接用 100% */
+.scroller-custom {
+  border: none !important;
+}
+
+.h-full { height: 100%; }
+.w-full { width: 100%; box-sizing: border-box; }
+.h-6 { height: 1.5rem; }
+.w-6 { width: 1.5rem; }
+.flex-1 { flex: 1; justify-content: center; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mr-2 { margin-right: 0.5rem; }
 
 .file-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 0 12px;
   font-size: 12px;
+  height: 28px;
   cursor: pointer;
   transition: background-color 0.1s;
 }
@@ -316,6 +350,7 @@ function openFileInVscode(file: FileChange) {
   opacity: 0;
   transition: opacity 0.15s;
   flex-shrink: 0;
+  align-items: center;
 }
 
 .file-item:hover .file-actions {
@@ -336,17 +371,11 @@ function openFileInVscode(file: FileChange) {
 }
 
 .commit-input {
-  width: 100%;
-  padding: 8px 10px;
   background: var(--bg-primary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 13px;
-  resize: none;
-  outline: none;
   font-family: var(--font-ui);
-  transition: border-color 0.15s;
 }
 
 .commit-input:focus {
@@ -355,28 +384,5 @@ function openFileInVscode(file: FileChange) {
 
 .commit-input::placeholder {
   color: var(--text-muted);
-}
-
-.commit-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.commit-options {
-  display: flex;
-  gap: 2px;
-}
-
-.commit-options .btn-icon.active {
-  color: var(--accent-blue);
-  background: var(--bg-active);
-}
-
-.commit-btn {
-  flex: 1;
-  justify-content: center;
-  padding: 8px;
 }
 </style>

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRepoStore } from '@/stores/repo'
 import {
-  GitBranch, FileText, History, Plus, Trash2, ChevronDown, ChevronRight,
+  GitBranch, FileText, History, Plus, Trash2,
   Search, Archive, Play, ArrowDownToLine, GitMerge, Download, PenLine, LogIn,
 } from 'lucide-vue-next'
 import ContextMenu from '@/components/ContextMenu.vue'
@@ -10,15 +10,21 @@ import CreateBranchDialog from '@/components/CreateBranchDialog.vue'
 import type { MenuItem } from '@/components/ContextMenu.vue'
 import type { BranchInfo } from '@/types'
 
+import Accordion from 'primevue/accordion'
+import AccordionPanel from 'primevue/accordionpanel'
+import AccordionHeader from 'primevue/accordionheader'
+import AccordionContent from 'primevue/accordioncontent'
+import InputText from 'primevue/inputtext'
+import Button from 'primevue/button'
+
 const repo = useRepoStore()
 const createBranchDialog = ref<InstanceType<typeof CreateBranchDialog>>()
-const branchesExpanded = ref(true)
-const remoteBranchesExpanded = ref(false)
-const stashesExpanded = ref(false)
+
+const activePanels = ref(['local']) // 默认展开本地分支
+
 const branchSearch = ref('')
 const showStashInput = ref(false)
 const stashMessage = ref('')
-const showMergeSelect = ref(false)
 
 const filteredLocalBranches = computed(() => {
   const q = branchSearch.value.trim().toLowerCase()
@@ -44,11 +50,9 @@ async function handleStashSave() {
   await repo.stashSave(stashMessage.value.trim() || undefined)
   stashMessage.value = ''
   showStashInput.value = false
-  stashesExpanded.value = true
 }
 
 async function handleMerge(branch: string) {
-  showMergeSelect.value = false
   await repo.mergeBranch(branch)
 }
 
@@ -145,137 +149,162 @@ function stopResize() {
     <!-- 分支搜索 -->
     <div class="branch-search">
       <Search :size="13" class="search-icon" />
-      <input
+      <InputText
         v-model="branchSearch"
-        class="search-input"
+        class="search-input w-full"
         placeholder="搜索分支..."
       />
     </div>
 
-    <!-- 本地分支 -->
-    <div class="sidebar-section">
-      <div class="section-header" @click="branchesExpanded = !branchesExpanded">
-        <component :is="branchesExpanded ? ChevronDown : ChevronRight" :size="14" />
-        <span class="section-title">本地分支</span>
-        <button class="btn-icon section-action" title="新建分支" @click.stop="createBranchDialog?.show()">
-          <Plus :size="12" />
-        </button>
-      </div>
+    <div class="sidebar-scrollable flex-1 overflow-y-auto">
+      <Accordion multiple v-model:value="activePanels" class="custom-accordion">
 
-      <div v-if="branchesExpanded" class="branch-list">
-        <div
-          v-for="branch in filteredLocalBranches"
-          :key="branch.name"
-          class="branch-item"
-          :class="{ current: branch.is_current }"
-          @click="!branch.is_current && repo.checkoutBranch(branch.name)"
-          @contextmenu.prevent="showBranchCtxMenu($event, branch)"
-        >
-          <GitBranch :size="13" />
-          <span class="branch-name">{{ branch.name }}</span>
-          <button
-            v-if="!branch.is_current"
-            class="btn-icon branch-delete"
-            title="删除分支"
-            @click.stop="repo.deleteBranch(branch.name)"
-          >
-            <Trash2 :size="11" />
-          </button>
-        </div>
-        <div v-if="filteredLocalBranches.length === 0 && branchSearch" class="branch-empty">
-          无匹配分支
-        </div>
-      </div>
-    </div>
+        <!-- 本地分支 -->
+        <AccordionPanel value="local">
+          <AccordionHeader>
+            <div class="flex items-center w-full section-header-custom">
+              <span class="section-title">本地分支</span>
+              <Button
+                variant="text" severity="secondary"
+                class="!p-1 h-6 w-6 ml-auto section-action"
+                title="新建分支"
+                @click.stop="createBranchDialog?.show()"
+              >
+                <Plus :size="12" />
+              </Button>
+            </div>
+          </AccordionHeader>
+          <AccordionContent>
+            <div class="branch-list">
+              <div
+                v-for="branch in filteredLocalBranches"
+                :key="branch.name"
+                class="branch-item"
+                :class="{ current: branch.is_current }"
+                @click="!branch.is_current && repo.checkoutBranch(branch.name)"
+                @contextmenu.prevent="showBranchCtxMenu($event, branch)"
+              >
+                <GitBranch :size="13" />
+                <span class="branch-name">{{ branch.name }}</span>
+                <Button
+                  v-if="!branch.is_current"
+                  variant="text" severity="danger"
+                  class="!p-1 h-6 w-6 branch-delete"
+                  title="删除分支"
+                  @click.stop="repo.deleteBranch(branch.name)"
+                >
+                  <Trash2 :size="11" />
+                </Button>
+              </div>
+              <div v-if="filteredLocalBranches.length === 0 && branchSearch" class="branch-empty">
+                无匹配分支
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
 
-    <!-- 远程分支 -->
-    <div v-if="repo.remoteBranches.length > 0" class="sidebar-section">
-      <div class="section-header" @click="remoteBranchesExpanded = !remoteBranchesExpanded">
-        <component :is="remoteBranchesExpanded ? ChevronDown : ChevronRight" :size="14" />
-        <span class="section-title">远程分支</span>
-      </div>
+        <!-- 远程分支 -->
+        <AccordionPanel value="remote" v-if="repo.remoteBranches.length > 0">
+          <AccordionHeader>
+            <span class="section-title">远程分支</span>
+          </AccordionHeader>
+          <AccordionContent>
+            <div class="branch-list">
+              <div
+                v-for="branch in filteredRemoteBranches"
+                :key="branch.name"
+                class="branch-item remote"
+                title="点击检出到本地"
+                @click="checkoutRemoteBranch(branch.name)"
+              >
+                <Download :size="13" />
+                <span class="branch-name">{{ branch.name }}</span>
+              </div>
+              <div v-if="filteredRemoteBranches.length === 0 && branchSearch" class="branch-empty">
+                无匹配分支
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
 
-      <div v-if="remoteBranchesExpanded" class="branch-list">
-        <div
-          v-for="branch in filteredRemoteBranches"
-          :key="branch.name"
-          class="branch-item remote"
-          title="点击检出到本地"
-          @click="checkoutRemoteBranch(branch.name)"
-        >
-          <Download :size="13" />
-          <span class="branch-name">{{ branch.name }}</span>
-        </div>
-        <div v-if="filteredRemoteBranches.length === 0 && branchSearch" class="branch-empty">
-          无匹配分支
-        </div>
-      </div>
-    </div>
+        <!-- 合并分支 -->
+        <AccordionPanel value="merge">
+          <AccordionHeader>
+            <div class="flex items-center gap-1">
+              <GitMerge :size="12" class="mr-1" />
+              <span class="section-title">合并分支</span>
+            </div>
+          </AccordionHeader>
+          <AccordionContent>
+            <div class="branch-list">
+              <div
+                v-for="branch in mergableBranches"
+                :key="'merge-' + branch.name"
+                class="branch-item"
+                @click="handleMerge(branch.name)"
+              >
+                <GitBranch :size="13" />
+                <span class="branch-name">{{ branch.name }}</span>
+                <span class="merge-hint">合并到当前</span>
+              </div>
+              <div v-if="mergableBranches.length === 0" class="branch-empty">无可合并分支</div>
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
 
-    <!-- 合并分支 -->
-    <div class="sidebar-section">
-      <div class="section-header" @click="showMergeSelect = !showMergeSelect">
-        <GitMerge :size="14" />
-        <span class="section-title">合并分支</span>
-      </div>
-      <div v-if="showMergeSelect" class="branch-list">
-        <div
-          v-for="branch in mergableBranches"
-          :key="'merge-' + branch.name"
-          class="branch-item"
-          @click="handleMerge(branch.name)"
-        >
-          <GitBranch :size="13" />
-          <span class="branch-name">{{ branch.name }}</span>
-          <span class="merge-hint">合并到当前</span>
-        </div>
-        <div v-if="mergableBranches.length === 0" class="branch-empty">无可合并分支</div>
-      </div>
-    </div>
+        <!-- Stash 暂存 -->
+        <AccordionPanel value="stash">
+          <AccordionHeader>
+            <div class="flex items-center w-full section-header-custom">
+              <span class="section-title">Stash</span>
+              <span v-if="repo.stashes.length > 0" class="stash-count ml-1">{{ repo.stashes.length }}</span>
+              <Button
+                variant="text" severity="secondary"
+                class="!p-1 h-6 w-6 ml-auto section-action"
+                title="暂存当前更改"
+                @click.stop="showStashInput = !showStashInput"
+              >
+                <Plus :size="12" />
+              </Button>
+            </div>
+          </AccordionHeader>
+          <AccordionContent>
+            <div v-if="showStashInput" class="new-branch-input mb-2 mt-1 px-3">
+              <InputText
+                v-model="stashMessage"
+                class="w-full !text-xs !py-1 !px-2"
+                placeholder="stash 备注（可选）"
+                @keyup.enter="handleStashSave"
+                @keyup.escape="showStashInput = false"
+              />
+            </div>
 
-    <!-- Stash 暂存 -->
-    <div class="sidebar-section sidebar-section-grow">
-      <div class="section-header" @click="stashesExpanded = !stashesExpanded">
-        <component :is="stashesExpanded ? ChevronDown : ChevronRight" :size="14" />
-        <span class="section-title">Stash</span>
-        <span v-if="repo.stashes.length > 0" class="stash-count">{{ repo.stashes.length }}</span>
-        <button class="btn-icon section-action" title="暂存当前更改" @click.stop="showStashInput = !showStashInput">
-          <Plus :size="12" />
-        </button>
-      </div>
+            <div class="branch-list">
+              <div
+                v-for="stash in repo.stashes"
+                :key="stash.index"
+                class="stash-item"
+              >
+                <Archive :size="13" />
+                <span class="branch-name">{{ stash.message }}</span>
+                <div class="stash-actions">
+                  <Button variant="text" severity="secondary" class="!p-1 h-5 w-5" title="应用 (保留)" @click.stop="repo.stashApply(stash.index)">
+                    <Play :size="11" />
+                  </Button>
+                  <Button variant="text" severity="secondary" class="!p-1 h-5 w-5" title="弹出 (删除)" @click.stop="repo.stashPop(stash.index)">
+                    <ArrowDownToLine :size="11" />
+                  </Button>
+                  <Button variant="text" severity="danger" class="!p-1 h-5 w-5" title="删除" @click.stop="repo.stashDrop(stash.index)">
+                    <Trash2 :size="11" />
+                  </Button>
+                </div>
+              </div>
+              <div v-if="repo.stashes.length === 0" class="branch-empty">暂无 stash</div>
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
 
-      <div v-if="showStashInput" class="new-branch-input">
-        <input
-          v-model="stashMessage"
-          class="input-sm"
-          placeholder="stash 备注（可选）"
-          @keyup.enter="handleStashSave"
-          @keyup.escape="showStashInput = false"
-        />
-      </div>
-
-      <div v-if="stashesExpanded" class="branch-list">
-        <div
-          v-for="stash in repo.stashes"
-          :key="stash.index"
-          class="stash-item"
-        >
-          <Archive :size="13" />
-          <span class="branch-name">{{ stash.message }}</span>
-          <div class="stash-actions">
-            <button class="btn-icon" title="应用 (保留)" @click.stop="repo.stashApply(stash.index)">
-              <Play :size="11" />
-            </button>
-            <button class="btn-icon" title="弹出 (删除)" @click.stop="repo.stashPop(stash.index)">
-              <ArrowDownToLine :size="11" />
-            </button>
-            <button class="btn-icon" title="删除" @click.stop="repo.stashDrop(stash.index)">
-              <Trash2 :size="11" />
-            </button>
-          </div>
-        </div>
-        <div v-if="repo.stashes.length === 0" class="branch-empty">暂无 stash</div>
-      </div>
+      </Accordion>
     </div>
 
     <ContextMenu ref="branchCtxMenu" :items="branchCtxMenuItems" />
@@ -371,6 +400,7 @@ function stopResize() {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: border-color 0.15s;
+  flex-shrink: 0;
 }
 
 .branch-search:focus-within {
@@ -383,12 +413,14 @@ function stopResize() {
 }
 
 .search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  font-size: 12px;
+  /* 覆盖 PrimeVue InputText 的默认样式及背景 */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  outline: none !important;
+  color: var(--text-primary) !important;
+  font-size: 12px !important;
   min-width: 0;
 }
 
@@ -397,35 +429,44 @@ function stopResize() {
 }
 
 .branch-empty {
-  padding: 8px 28px;
+  padding: 8px 12px 8px 28px;
   font-size: 12px;
   color: var(--text-muted);
 }
 
-.sidebar-section {
-  border-bottom: 1px solid var(--border-muted);
+/* Accordion 覆写 */
+:deep(.p-accordionpanel) {
+  border: none !important;
+  border-bottom: 1px solid var(--border-muted) !important;
+  background: transparent !important;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: color 0.15s;
+:deep(.p-accordionheader) {
+  padding: 8px 12px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
 }
 
-.section-header:hover {
-  color: var(--text-primary);
+:deep(.p-accordionheader:hover) {
+  color: var(--text-primary) !important;
+}
+
+:deep(.p-accordioncontent-content) {
+  padding: 0 0 8px 0 !important;
+  background: transparent !important;
 }
 
 .section-title {
-  flex: 1;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.section-header-custom {
+  position: relative;
 }
 
 .section-action {
@@ -433,28 +474,12 @@ function stopResize() {
   transition: opacity 0.15s;
 }
 
-.section-header:hover .section-action {
+:deep(.p-accordionheader:hover) .section-action {
   opacity: 1;
 }
 
-.new-branch-input {
-  padding: 0 12px 8px;
-}
-
-.input-sm {
-  width: 100%;
-  padding: 4px 8px;
-  background: var(--bg-primary);
-  border: 1px solid var(--accent-blue);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 12px;
-  outline: none;
-}
-
 .branch-list {
-  max-height: 200px;
-  overflow-y: auto;
+  /* ... */
 }
 
 .branch-item {
@@ -493,15 +518,10 @@ function stopResize() {
 .branch-delete {
   opacity: 0;
   transition: opacity 0.15s;
-  color: var(--text-muted);
 }
 
 .branch-item:hover .branch-delete {
   opacity: 1;
-}
-
-.branch-delete:hover {
-  color: var(--accent-red) !important;
 }
 
 .branch-item.remote {
@@ -517,19 +537,6 @@ function stopResize() {
   color: var(--text-muted);
   margin-left: auto;
   flex-shrink: 0;
-}
-
-.sidebar-section-grow {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sidebar-section-grow .branch-list {
-  flex: 1;
-  overflow-y: auto;
 }
 
 .stash-count {
