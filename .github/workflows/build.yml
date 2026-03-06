@@ -1,0 +1,136 @@
+name: 构建多平台安装包
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+            name: Windows
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+            name: macOS (Apple Silicon)
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+            name: macOS (Intel)
+          - platform: ubuntu-22.04
+            args: ''
+            name: Linux
+
+    runs-on: ${{ matrix.platform }}
+    name: 构建 ${{ matrix.name }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Rust 稳定版
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: 安装 Linux 系统依赖
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安装前端依赖
+        run: npm install
+
+      - name: 安装 Tauri CLI
+        run: npm install @tauri-apps/cli@latest
+
+      - name: 构建 Tauri 应用
+        run: npx tauri build ${{ matrix.args }}
+
+      - name: 上传 Windows 安装包
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitVista-Windows
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+
+      - name: 上传 macOS 安装包
+        if: matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitVista-macOS-${{ contains(matrix.args, 'aarch64') && 'arm64' || 'x64' }}
+          path: |
+            src-tauri/target/*/release/bundle/dmg/*.dmg
+            src-tauri/target/*/release/bundle/macos/*.app
+
+      - name: 上传 Linux 安装包
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitVista-Linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    name: 发布 Release
+
+    steps:
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 整理安装包文件
+        run: |
+          mkdir -p release-files
+          find artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) -exec cp {} release-files/ \;
+          echo "发布文件列表:"
+          ls -lh release-files/
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: GitVista ${{ github.ref_name }}
+          body: |
+            ## GitVista ${{ github.ref_name }}
+
+            轻量级 Git 图形化管理工具
+
+            ### 新功能
+
+            - 无边框窗口 + 自定义标题栏，多端交互一致
+            - 首页双布局（卡片 / 列表）切换
+            - 侧边栏分支搜索过滤
+            - 工具栏简化，静态显示当前分支
+
+            ### 下载安装包
+
+            | 平台 | 文件 |
+            |------|------|
+            | **Windows** | `.msi` 或 `.exe` (NSIS 安装程序) |
+            | **macOS (Apple Silicon)** | `.dmg` (aarch64) |
+            | **macOS (Intel)** | `.dmg` (x64) |
+            | **Linux** | `.deb` / `.rpm` / `.AppImage` |
+          draft: false
+          prerelease: false
+          files: release-files/*
