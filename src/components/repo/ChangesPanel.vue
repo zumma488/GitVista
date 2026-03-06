@@ -13,9 +13,31 @@ import {
   PenLine,
 } from 'lucide-vue-next'
 import type { FileChange } from '@/types'
+import ContextMenu from '@/components/ContextMenu.vue'
+import type { MenuItem } from '@/components/ContextMenu.vue'
 
 const repo = useRepoStore()
 const amendMode = ref(false)
+const ctxMenu = ref<InstanceType<typeof ContextMenu>>()
+const ctxMenuItems = ref<MenuItem[]>([])
+
+function showStagedCtxMenu(e: MouseEvent, file: FileChange) {
+  ctxMenuItems.value = [
+    { label: '取消暂存', icon: Minus, action: () => repo.unstageFiles([file.path]) },
+    { label: '在 VSCode 中打开', icon: Code2, action: () => repo.openInVscode(file.path) },
+  ]
+  ctxMenu.value?.open(e)
+}
+
+function showUnstagedCtxMenu(e: MouseEvent, file: FileChange) {
+  ctxMenuItems.value = [
+    { label: '暂存', icon: Plus, action: () => repo.stageFiles([file.path]) },
+    { label: '在 VSCode 中打开', icon: Code2, action: () => repo.openInVscode(file.path) },
+    { label: '', action: () => {}, divider: true },
+    { label: '丢弃更改', icon: Trash2, action: () => repo.discardChanges([file.path]), danger: true },
+  ]
+  ctxMenu.value?.open(e)
+}
 
 function statusIcon(status: string): string {
   switch (status) {
@@ -80,6 +102,7 @@ function openFileInVscode(file: FileChange) {
           :key="'staged-' + file.path"
           class="file-item"
           @dblclick="openFileInVscode(file)"
+          @contextmenu.prevent="showStagedCtxMenu($event, file)"
         >
           <span class="file-status" :style="{ color: statusColor(file.status) }">
             {{ statusIcon(file.status) }}
@@ -128,6 +151,7 @@ function openFileInVscode(file: FileChange) {
           :key="'unstaged-' + file.path"
           class="file-item"
           @dblclick="openFileInVscode(file)"
+          @contextmenu.prevent="showUnstagedCtxMenu($event, file)"
         >
           <span class="file-status" :style="{ color: statusColor(file.status) }">
             {{ statusIcon(file.status) }}
@@ -199,6 +223,8 @@ function openFileInVscode(file: FileChange) {
         </button>
       </div>
     </div>
+
+    <ContextMenu ref="ctxMenu" :items="ctxMenuItems" />
   </div>
 </template>
 
