@@ -35,11 +35,11 @@ async function handleClose() {
 </script>
 
 <template>
-  <div class="titlebar">
-    <div class="titlebar-drag" data-tauri-drag-region>
-      <span class="titlebar-title" data-tauri-drag-region>GitVista</span>
+  <div class="titlebar" data-tauri-drag-region="true">
+    <div class="titlebar-drag" data-tauri-drag-region="true">
+      <span class="titlebar-title" data-tauri-drag-region="true">GitVista</span>
     </div>
-    <div class="titlebar-controls">
+    <div class="titlebar-controls" data-tauri-drag-region="false">
       <button
         class="titlebar-btn"
         title="最小化"
