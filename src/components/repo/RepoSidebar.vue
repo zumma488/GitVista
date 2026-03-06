@@ -6,12 +6,12 @@ import {
   Search, Archive, Play, ArrowDownToLine, GitMerge, Download, PenLine, LogIn,
 } from 'lucide-vue-next'
 import ContextMenu from '@/components/ContextMenu.vue'
+import CreateBranchDialog from '@/components/CreateBranchDialog.vue'
 import type { MenuItem } from '@/components/ContextMenu.vue'
 import type { BranchInfo } from '@/types'
 
 const repo = useRepoStore()
-const showNewBranch = ref(false)
-const newBranchName = ref('')
+const createBranchDialog = ref<InstanceType<typeof CreateBranchDialog>>()
 const branchesExpanded = ref(true)
 const remoteBranchesExpanded = ref(false)
 const stashesExpanded = ref(false)
@@ -36,11 +36,8 @@ const mergableBranches = computed(() =>
   repo.localBranches.filter(b => !b.is_current)
 )
 
-async function handleCreateBranch() {
-  if (!newBranchName.value.trim()) return
-  await repo.createBranch(newBranchName.value.trim())
-  newBranchName.value = ''
-  showNewBranch.value = false
+async function handleCreateBranch(name: string) {
+  await repo.createBranch(name)
 }
 
 async function handleStashSave() {
@@ -81,10 +78,49 @@ function showBranchCtxMenu(e: MouseEvent, branch: BranchInfo) {
   branchCtxMenuItems.value = items
   branchCtxMenu.value?.open(e)
 }
+
+// ===== 拖拽改变宽度 =====
+const MIN_WIDTH = 200
+const MAX_WIDTH = 800
+const DEFAULT_WIDTH = 346 // 260px 的基础上加 1/3
+const sidebarWidth = ref(DEFAULT_WIDTH)
+const isResizing = ref(false)
+
+const savedWidth = localStorage.getItem('repo_sidebar_width')
+if (savedWidth) {
+  sidebarWidth.value = parseInt(savedWidth, 10)
+}
+
+function startResize() {
+  isResizing.value = true
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  // 防止拖拽时选中文本
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+}
+
+function handleResize(e: MouseEvent) {
+  if (!isResizing.value) return
+  // sidebar 在左侧，鼠标 X 坐标差不多就是宽度（不考虑复杂的嵌套偏移，这里近似即可）
+  let newWidth = e.clientX
+  if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH
+  if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH
+  sidebarWidth.value = newWidth
+}
+
+function stopResize() {
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  localStorage.setItem('repo_sidebar_width', sidebarWidth.value.toString())
+}
 </script>
 
 <template>
-  <div class="sidebar">
+  <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <!-- 导航 Tab -->
     <div class="sidebar-tabs">
       <button
@@ -121,19 +157,9 @@ function showBranchCtxMenu(e: MouseEvent, branch: BranchInfo) {
       <div class="section-header" @click="branchesExpanded = !branchesExpanded">
         <component :is="branchesExpanded ? ChevronDown : ChevronRight" :size="14" />
         <span class="section-title">本地分支</span>
-        <button class="btn-icon section-action" title="新建分支" @click.stop="showNewBranch = !showNewBranch">
+        <button class="btn-icon section-action" title="新建分支" @click.stop="createBranchDialog?.show()">
           <Plus :size="12" />
         </button>
-      </div>
-
-      <div v-if="showNewBranch" class="new-branch-input">
-        <input
-          v-model="newBranchName"
-          class="input-sm"
-          placeholder="分支名称"
-          @keyup.enter="handleCreateBranch"
-          @keyup.escape="showNewBranch = false"
-        />
       </div>
 
       <div v-if="branchesExpanded" class="branch-list">
@@ -253,12 +279,21 @@ function showBranchCtxMenu(e: MouseEvent, branch: BranchInfo) {
     </div>
 
     <ContextMenu ref="branchCtxMenu" :items="branchCtxMenuItems" />
+    <CreateBranchDialog ref="createBranchDialog" @submit="handleCreateBranch" />
+
+    <!-- 拖拽调整宽度的把手 -->
+    <div
+      class="sidebar-resizer"
+      :class="{ active: isResizing }"
+      @mousedown.prevent="startResize"
+    ></div>
   </div>
 </template>
 
 <style scoped>
 .sidebar {
-  width: var(--sidebar-width);
+  /* width: var(--sidebar-width); <- 改为行内样式动态设置 */
+  position: relative;
   height: 100%;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-default);
@@ -266,6 +301,23 @@ function showBranchCtxMenu(e: MouseEvent, branch: BranchInfo) {
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
+  will-change: width;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px; /* 稍微伸出右侧以增加命中区 */
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background-color 0.15s;
+}
+
+.sidebar-resizer:hover, .sidebar-resizer.active {
+  background-color: var(--accent-blue);
+  opacity: 0.5;
 }
 
 .sidebar-tabs {

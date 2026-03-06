@@ -335,18 +335,29 @@ fn parse_commit_files(output: &str) -> Result<Vec<CommitFile>, String> {
 
 pub fn open_in_vscode(repo_path: &str, file: Option<&str>) -> Result<(), String> {
     let target = match file {
-        Some(f) => format!("{}/{}", repo_path, f),
+        Some(f) => std::path::Path::new(repo_path)
+            .join(f)
+            .to_string_lossy()
+            .to_string(),
         None => repo_path.to_string(),
     };
 
-    let mut cmd = Command::new("code");
-    cmd.arg(&target);
-
     #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NO_WINDOW);
+    {
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", "code", &target]);
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd.spawn()
+            .map_err(|e| format!("无法打开 VSCode: {}", e))?;
+    }
 
-    cmd.spawn()
-        .map_err(|e| format!("无法打开 VSCode: {}", e))?;
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new("code")
+            .arg(&target)
+            .spawn()
+            .map_err(|e| format!("无法打开 VSCode: {}", e))?;
+    }
 
     Ok(())
 }

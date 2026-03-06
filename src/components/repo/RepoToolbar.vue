@@ -122,7 +122,7 @@ function repoName(): string {
   border-radius: var(--radius-md);
   font-size: 12px;
   color: var(--text-primary);
-  max-width: 260px;
+  max-width: 520px;
 }
 
 .current-branch-text {
