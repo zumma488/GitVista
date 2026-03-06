@@ -2,6 +2,7 @@ export interface Project {
   name: string
   path: string
   last_opened: string | null
+  favorite: boolean
 }
 
 export interface RepoInfo {

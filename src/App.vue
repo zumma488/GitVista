@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import { useRepoStore } from '@/stores/repo'
+import { useShortcuts } from '@/composables/useShortcuts'
 import TitleBar from '@/components/TitleBar.vue'
 
 const repo = useRepoStore()
+useShortcuts()
 </script>
 
 <template>

@@ -43,6 +43,10 @@ export const useProjectsStore = defineStore('projects', () => {
     await invoke('update_last_opened', { path })
   }
 
+  async function toggleFavorite(path: string): Promise<void> {
+    projects.value = await invoke<Project[]>('toggle_favorite', { path })
+  }
+
   return {
     projects,
     projectInfoMap,
@@ -52,5 +56,6 @@ export const useProjectsStore = defineStore('projects', () => {
     addProject,
     removeProject,
     updateLastOpened,
+    toggleFavorite,
   }
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore } from '@/stores/projects'
 import { useRepoStore } from '@/stores/repo'
@@ -16,9 +16,13 @@ import {
   ExternalLink,
   LayoutGrid,
   List,
+  Search,
+  Star,
+  ArrowUpDown,
 } from 'lucide-vue-next'
 
 type ViewMode = 'card' | 'list'
+type SortMode = 'name' | 'recent'
 
 const router = useRouter()
 const store = useProjectsStore()
@@ -29,10 +33,41 @@ const showCloneDialog = ref(false)
 const cloneUrl = ref('')
 const cloneTarget = ref('')
 const cloning = ref(false)
+const searchQuery = ref('')
+const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'recent')
+
+const filteredProjects = computed(() => {
+  let list = store.projects
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(p => p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q))
+  }
+  const sorted = [...list].sort((a, b) => {
+    // 收藏置顶
+    if (a.favorite !== b.favorite) return a.favorite ? -1 : 1
+    if (sortMode.value === 'name') {
+      return a.name.localeCompare(b.name)
+    }
+    // 按最近打开
+    const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
+    const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
+    return tb - ta
+  })
+  return sorted
+})
 
 function setViewMode(mode: ViewMode) {
   viewMode.value = mode
   localStorage.setItem('gitvista-view-mode', mode)
+}
+
+function setSortMode(mode: SortMode) {
+  sortMode.value = mode
+  localStorage.setItem('gitvista-sort-mode', mode)
+}
+
+async function handleToggleFavorite(path: string) {
+  await store.toggleFavorite(path)
 }
 
 onMounted(() => {
@@ -164,6 +199,32 @@ async function selectCloneTarget() {
       </div>
     </header>
 
+    <!-- 搜索和排序栏 -->
+    <div v-if="store.projects.length > 0" class="toolbar-bar">
+      <div class="search-box">
+        <Search :size="14" class="search-icon" />
+        <input
+          id="project-search-input"
+          v-model="searchQuery"
+          class="search-input"
+          placeholder="搜索项目..."
+        />
+      </div>
+      <div class="sort-control">
+        <ArrowUpDown :size="13" />
+        <button
+          class="sort-btn"
+          :class="{ active: sortMode === 'recent' }"
+          @click="setSortMode('recent')"
+        >最近打开</button>
+        <button
+          class="sort-btn"
+          :class="{ active: sortMode === 'name' }"
+          @click="setSortMode('name')"
+        >名称</button>
+      </div>
+    </div>
+
     <!-- 项目内容区 -->
     <main class="project-content">
       <div v-if="store.projects.length === 0 && !store.loading" class="empty-state">
@@ -175,7 +236,7 @@ async function selectCloneTarget() {
       <!-- 卡片视图 -->
       <div v-else-if="viewMode === 'card'" class="project-grid">
         <div
-          v-for="project in store.projects"
+          v-for="project in filteredProjects"
           :key="project.path"
           class="project-card"
           @click="handleOpenProject(project.path)"
@@ -186,13 +247,23 @@ async function selectCloneTarget() {
           <div class="card-body">
             <div class="card-header">
               <h3 class="card-title" :title="project.name">{{ project.name }}</h3>
-              <button
-                class="btn-icon card-delete"
-                title="移除项目"
-                @click.stop="handleRemoveProject(project.path)"
-              >
-                <Trash2 :size="14" />
-              </button>
+              <div class="card-header-actions">
+                <button
+                  class="btn-icon card-fav"
+                  :class="{ favorited: project.favorite }"
+                  :title="project.favorite ? '取消收藏' : '收藏'"
+                  @click.stop="handleToggleFavorite(project.path)"
+                >
+                  <Star :size="14" />
+                </button>
+                <button
+                  class="btn-icon card-delete"
+                  title="移除项目"
+                  @click.stop="handleRemoveProject(project.path)"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </div>
             </div>
             <p class="card-path" :title="project.path">{{ project.path }}</p>
             <div class="card-meta">
@@ -225,12 +296,20 @@ async function selectCloneTarget() {
           <span class="list-col-actions" />
         </div>
         <div
-          v-for="project in store.projects"
+          v-for="project in filteredProjects"
           :key="project.path"
           class="list-row"
           @click="handleOpenProject(project.path)"
         >
           <span class="list-col-name">
+            <button
+              class="btn-icon list-fav"
+              :class="{ favorited: project.favorite }"
+              :title="project.favorite ? '取消收藏' : '收藏'"
+              @click.stop="handleToggleFavorite(project.path)"
+            >
+              <Star :size="13" />
+            </button>
             <span class="list-avatar" :style="{ background: getAvatarColor(project.name) }">
               {{ project.name.charAt(0).toUpperCase() }}
             </span>
@@ -261,6 +340,9 @@ async function selectCloneTarget() {
               <Trash2 :size="14" />
             </button>
           </span>
+        </div>
+        <div v-if="filteredProjects.length === 0 && searchQuery" class="search-empty">
+          无匹配的项目
         </div>
       </div>
     </main>
@@ -313,6 +395,86 @@ async function selectCloneTarget() {
   display: flex;
   flex-direction: column;
   background: var(--bg-canvas);
+}
+
+/* ===== 搜索排序栏 ===== */
+.toolbar-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 32px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 320px;
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+}
+
+.search-box:focus-within {
+  border-color: var(--accent-blue);
+}
+
+.search-box .search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-box .search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.search-box .search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.sort-btn {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: background 0.12s, color 0.12s;
+}
+
+.sort-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.sort-btn.active {
+  color: var(--accent-blue);
+  background: var(--bg-active);
+}
+
+.search-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* ===== Header ===== */
@@ -491,6 +653,35 @@ async function selectCloneTarget() {
   opacity: 0;
   color: var(--text-muted);
   transition: opacity 0.15s, color 0.15s;
+}
+
+.card-header-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.card-fav,
+.list-fav {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.card-fav.favorited,
+.list-fav.favorited {
+  opacity: 1;
+  color: var(--accent-yellow);
+}
+
+.project-card:hover .card-fav,
+.list-row:hover .list-fav {
+  opacity: 1;
+}
+
+.card-fav:hover,
+.list-fav:hover {
+  color: var(--accent-yellow) !important;
 }
 
 .project-card:hover .card-delete {

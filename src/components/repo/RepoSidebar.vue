@@ -3,8 +3,11 @@ import { ref, computed } from 'vue'
 import { useRepoStore } from '@/stores/repo'
 import {
   GitBranch, FileText, History, Plus, Trash2, ChevronDown, ChevronRight,
-  Search, Archive, Play, ArrowDownToLine, GitMerge, Download,
+  Search, Archive, Play, ArrowDownToLine, GitMerge, Download, PenLine, LogIn,
 } from 'lucide-vue-next'
+import ContextMenu from '@/components/ContextMenu.vue'
+import type { MenuItem } from '@/components/ContextMenu.vue'
+import type { BranchInfo } from '@/types'
 
 const repo = useRepoStore()
 const showNewBranch = ref(false)
@@ -55,6 +58,28 @@ async function handleMerge(branch: string) {
 function checkoutRemoteBranch(remoteName: string) {
   const localName = remoteName.replace(/^origin\//, '')
   repo.checkoutBranch(localName)
+}
+
+const branchCtxMenu = ref<InstanceType<typeof ContextMenu>>()
+const branchCtxMenuItems = ref<MenuItem[]>([])
+
+function showBranchCtxMenu(e: MouseEvent, branch: BranchInfo) {
+  const items: MenuItem[] = []
+  if (!branch.is_current) {
+    items.push({ label: '切换到此分支', icon: LogIn, action: () => repo.checkoutBranch(branch.name) })
+  }
+  items.push({ label: '重命名', icon: PenLine, action: () => {
+    const newName = prompt('输入新分支名称', branch.name)
+    if (newName && newName !== branch.name) {
+      repo.renameBranch(branch.name, newName)
+    }
+  }})
+  if (!branch.is_current) {
+    items.push({ label: '', action: () => {}, divider: true })
+    items.push({ label: '删除分支', icon: Trash2, action: () => repo.deleteBranch(branch.name), danger: true })
+  }
+  branchCtxMenuItems.value = items
+  branchCtxMenu.value?.open(e)
 }
 </script>
 
@@ -118,6 +143,7 @@ function checkoutRemoteBranch(remoteName: string) {
           class="branch-item"
           :class="{ current: branch.is_current }"
           @click="!branch.is_current && repo.checkoutBranch(branch.name)"
+          @contextmenu.prevent="showBranchCtxMenu($event, branch)"
         >
           <GitBranch :size="13" />
           <span class="branch-name">{{ branch.name }}</span>
@@ -225,6 +251,8 @@ function checkoutRemoteBranch(remoteName: string) {
         <div v-if="repo.stashes.length === 0" class="branch-empty">暂无 stash</div>
       </div>
     </div>
+
+    <ContextMenu ref="branchCtxMenu" :items="branchCtxMenuItems" />
   </div>
 </template>
 

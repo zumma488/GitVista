@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { Minus, Square, X, Copy } from 'lucide-vue-next'
+import { Minus, Square, X, Copy, Sun, Moon } from 'lucide-vue-next'
+import { useTheme } from '@/composables/useTheme'
 
 const appWindow = getCurrentWindow()
 const isMaximized = ref(false)
+const { currentTheme, toggleTheme } = useTheme()
 
 async function syncMaximized() {
   isMaximized.value = await appWindow.isMaximized()
@@ -40,6 +42,15 @@ async function handleClose() {
       <span class="titlebar-title" data-tauri-drag-region="true">GitVista</span>
     </div>
     <div class="titlebar-controls" data-tauri-drag-region="false">
+      <button
+        class="titlebar-btn"
+        :title="currentTheme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
+        @click="toggleTheme"
+        @mousedown.stop.prevent
+      >
+        <Sun v-if="currentTheme === 'dark'" :size="14" />
+        <Moon v-else :size="14" />
+      </button>
       <button
         class="titlebar-btn"
         title="最小化"

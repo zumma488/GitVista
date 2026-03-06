@@ -212,6 +212,11 @@ fn search_commits(path: String, query: String, count: Option<usize>) -> Result<V
     git::search_commits(&path, &query, count.unwrap_or(50))
 }
 
+#[tauri::command]
+fn toggle_favorite(path: String) -> Result<Vec<Project>, String> {
+    store::toggle_favorite(&path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -267,6 +272,7 @@ pub fn run() {
             pull_rebase,
             init_repo,
             search_commits,
+            toggle_favorite,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

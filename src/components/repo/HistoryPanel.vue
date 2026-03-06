@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRepoStore } from '@/stores/repo'
-import { GitCommitHorizontal, Code2, User, Calendar, Search, CherryIcon, Undo2 } from 'lucide-vue-next'
+import { GitCommitHorizontal, Code2, User, Calendar, Search, CherryIcon, Undo2, Copy } from 'lucide-vue-next'
+import ContextMenu from '@/components/ContextMenu.vue'
+import type { MenuItem } from '@/components/ContextMenu.vue'
 
 const repo = useRepoStore()
 const searchQuery = ref('')
@@ -54,6 +56,19 @@ function statusIcon(status: string): string {
     default: return '?'
   }
 }
+
+const commitCtxMenu = ref<InstanceType<typeof ContextMenu>>()
+const commitCtxMenuItems = ref<MenuItem[]>([])
+
+function showCommitCtxMenu(e: MouseEvent, hash: string) {
+  commitCtxMenuItems.value = [
+    { label: 'Cherry-pick', icon: CherryIcon, action: () => repo.cherryPick(hash) },
+    { label: 'Revert', icon: Undo2, action: () => repo.revertCommit(hash) },
+    { label: '', action: () => {}, divider: true },
+    { label: '复制提交哈希', icon: Copy, action: () => navigator.clipboard.writeText(hash) },
+  ]
+  commitCtxMenu.value?.open(e)
+}
 </script>
 
 <template>
@@ -76,6 +91,7 @@ function statusIcon(status: string): string {
         class="commit-item"
         :class="{ selected: repo.selectedCommitHash === commit.hash }"
         @click="repo.selectCommit(commit.hash)"
+        @contextmenu.prevent="showCommitCtxMenu($event, commit.hash)"
       >
         <div class="commit-dot" />
         <div class="commit-line" />
@@ -142,6 +158,8 @@ function statusIcon(status: string): string {
         <div v-if="repo.selectedCommitFiles.length === 0" class="empty-hint">无文件变更</div>
       </div>
     </div>
+
+    <ContextMenu ref="commitCtxMenu" :items="commitCtxMenuItems" />
   </div>
 </template>
 
