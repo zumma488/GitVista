@@ -2,6 +2,7 @@ mod git;
 mod store;
 
 use store::Project;
+use tauri::Emitter;
 
 #[tauri::command]
 fn list_projects() -> Vec<Project> {
@@ -245,7 +246,7 @@ pub fn run() {
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("GitVista")
                 .menu(&menu)
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
                         if let Some(window) = app.get_webview_window("main") {
