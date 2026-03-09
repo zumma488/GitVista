@@ -1,6 +1,6 @@
 [package]
 name = "git-vista"
-version = "0.3.0"
+version = "0.0.4"
 description = "GitVista - 轻量级 Git 图形化管理工具"
 authors = ["you"]
 license = ""

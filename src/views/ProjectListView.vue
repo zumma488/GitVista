@@ -22,7 +22,7 @@ import {
 } from 'lucide-vue-next'
 
 type ViewMode = 'card' | 'list'
-type SortMode = 'name' | 'recent'
+type SortMode = 'name' | 'recent' | 'custom'
 
 const router = useRouter()
 const store = useProjectsStore()
@@ -34,7 +34,9 @@ const cloneUrl = ref('')
 const cloneTarget = ref('')
 const cloning = ref(false)
 const searchQuery = ref('')
-const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'recent')
+const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'custom')
+const customOrder = ref<string[]>(JSON.parse(localStorage.getItem('gitvista-custom-order') || '[]'))
+const draggingPath = ref<string | null>(null)
 
 const filteredProjects = computed(() => {
   let list = store.projects
@@ -42,18 +44,30 @@ const filteredProjects = computed(() => {
   if (q) {
     list = list.filter(p => p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q))
   }
-  const sorted = [...list].sort((a, b) => {
-    // 收藏置顶
-    if (a.favorite !== b.favorite) return a.favorite ? -1 : 1
-    if (sortMode.value === 'name') {
-      return a.name.localeCompare(b.name)
-    }
-    // 按最近打开
-    const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
-    const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
-    return tb - ta
-  })
-  return sorted
+
+  if (sortMode.value === 'custom') {
+    return [...list].sort((a, b) => {
+      const indexA = customOrder.value.indexOf(a.path)
+      const indexB = customOrder.value.indexOf(b.path)
+      if (indexA === -1 && indexB === -1) {
+        const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
+        const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
+        return tb - ta
+      }
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+  } else {
+    return [...list].sort((a, b) => {
+      if (sortMode.value === 'name') {
+        return a.name.localeCompare(b.name)
+      }
+      const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
+      const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
+      return tb - ta
+    })
+  }
 })
 
 function setViewMode(mode: ViewMode) {
@@ -64,6 +78,42 @@ function setViewMode(mode: ViewMode) {
 function setSortMode(mode: SortMode) {
   sortMode.value = mode
   localStorage.setItem('gitvista-sort-mode', mode)
+}
+
+function onDragStart(event: DragEvent, path: string) {
+  if (sortMode.value !== 'custom') {
+    setSortMode('custom')
+  }
+  draggingPath.value = path
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.dropEffect = 'move'
+  }
+}
+
+function onDragEnter(event: DragEvent, path: string) {
+  if (!draggingPath.value || draggingPath.value === path) return
+
+  const currentList = filteredProjects.value.map(p => p.path)
+
+  const dragIndex = currentList.indexOf(draggingPath.value)
+  const targetIndex = currentList.indexOf(path)
+
+  if (dragIndex === -1 || targetIndex === -1) return
+
+  currentList.splice(dragIndex, 1)
+  currentList.splice(targetIndex, 0, draggingPath.value)
+
+  updateCustomOrder(currentList)
+}
+
+function onDragEnd() {
+  draggingPath.value = null
+}
+
+function updateCustomOrder(list: string[]) {
+  customOrder.value = [...list]
+  localStorage.setItem('gitvista-custom-order', JSON.stringify(customOrder.value))
 }
 
 async function handleToggleFavorite(path: string) {
@@ -107,6 +157,11 @@ async function handleAddProject() {
       title: '选择 Git 仓库文件夹',
     })
     if (selected) {
+      const isRepo = await invoke<boolean>('is_git_repo', { path: selected as string })
+      if (!isRepo) {
+        repo.showToast('error', '所选文件夹不是一个有效的 Git 仓库')
+        return
+      }
       await store.addProject(selected as string)
       repo.showToast('success', '项目添加成功')
     }
@@ -214,6 +269,11 @@ async function selectCloneTarget() {
         <ArrowUpDown :size="13" />
         <button
           class="sort-btn"
+          :class="{ active: sortMode === 'custom' }"
+          @click="setSortMode('custom')"
+        >自定义排序</button>
+        <button
+          class="sort-btn"
           :class="{ active: sortMode === 'recent' }"
           @click="setSortMode('recent')"
         >最近打开</button>
@@ -239,6 +299,12 @@ async function selectCloneTarget() {
           v-for="project in filteredProjects"
           :key="project.path"
           class="project-card"
+          :class="{ 'dragging': draggingPath === project.path }"
+          draggable="true"
+          @dragstart="onDragStart($event, project.path)"
+          @dragenter="onDragEnter($event, project.path)"
+          @dragover.prevent
+          @dragend="onDragEnd"
           @click="handleOpenProject(project.path)"
         >
           <div class="card-avatar" :style="{ background: getAvatarColor(project.name) }">
@@ -299,6 +365,12 @@ async function selectCloneTarget() {
           v-for="project in filteredProjects"
           :key="project.path"
           class="list-row"
+          :class="{ 'dragging': draggingPath === project.path }"
+          draggable="true"
+          @dragstart="onDragStart($event, project.path)"
+          @dragenter="onDragEnter($event, project.path)"
+          @dragover.prevent
+          @dragend="onDragEnd"
           @click="handleOpenProject(project.path)"
         >
           <span class="list-col-name">
@@ -940,5 +1012,12 @@ async function selectCloneTarget() {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
+}
+/* ===== 拖拽状态 ===== */
+.project-card.dragging,
+.list-row.dragging {
+  opacity: 0.5;
+  border-color: var(--accent-blue);
+  background: var(--bg-active);
 }
 </style>
