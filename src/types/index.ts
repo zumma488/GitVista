@@ -3,6 +3,7 @@ export interface Project {
   path: string
   last_opened: string | null
   favorite: boolean
+  pinned_at: string | null
 }
 
 export interface RepoInfo {

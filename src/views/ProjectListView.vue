@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore } from '@/stores/projects'
 import { useRepoStore } from '@/stores/repo'
@@ -17,8 +17,9 @@ import {
   LayoutGrid,
   List,
   Search,
-  Star,
-  ArrowUpDown,
+  Pin,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-vue-next'
 
 type ViewMode = 'card' | 'list'
@@ -36,33 +37,30 @@ const cloning = ref(false)
 const searchQuery = ref('')
 const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'recent')
 const customOrder = ref<string[]>(JSON.parse(localStorage.getItem('gitvista-custom-order') || '[]'))
-const draggingPath = ref<string | null>(null)
-const dragOverPath = ref<string | null>(null)
 
-// 是否正在搜索（搜索时禁用拖拽，防止排序数据丢失）
-const isSearching = computed(() => searchQuery.value.trim().length > 0)
-
-// 是否可拖拽（仅在自定义排序且非搜索时）
-const isDraggable = computed(() => sortMode.value === 'custom' && !isSearching.value)
-
-// 当项目列表变化时（添加/删除项目），同步更新 customOrder
+// 监听项目数量变化，保持 customOrder 同步（只追加新项目和移除被删项目，保持当前顺序）
+import { watch } from 'vue'
 watch(() => store.projects, (projects) => {
   const currentPaths = new Set(projects.map(p => p.path))
-  // 移除 customOrder 中已不存在的项目
   const filtered = customOrder.value.filter(p => currentPaths.has(p))
-  // 添加 customOrder 中缺失的新项目（追加到末尾）
   const existingPaths = new Set(filtered)
+
   for (const p of projects) {
     if (!existingPaths.has(p.path)) {
       filtered.push(p.path)
     }
   }
+
   if (filtered.length !== customOrder.value.length ||
       filtered.some((p, i) => p !== customOrder.value[i])) {
     customOrder.value = filtered
     saveCustomOrder()
   }
 }, { deep: true })
+
+function saveCustomOrder() {
+  localStorage.setItem('gitvista-custom-order', JSON.stringify(customOrder.value))
+}
 
 const filteredProjects = computed(() => {
   let list = store.projects
@@ -71,6 +69,7 @@ const filteredProjects = computed(() => {
     list = list.filter(p => p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q))
   }
 
+  // 如果是自定义排序模式
   if (sortMode.value === 'custom') {
     return [...list].sort((a, b) => {
       const indexA = customOrder.value.indexOf(a.path)
@@ -80,16 +79,23 @@ const filteredProjects = computed(() => {
       if (indexB === -1) return -1
       return indexA - indexB
     })
-  } else {
-    return [...list].sort((a, b) => {
-      if (sortMode.value === 'name') {
-        return a.name.localeCompare(b.name)
-      }
-      const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
-      const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
-      return tb - ta
-    })
   }
+
+  // 非自定义排序模式（最近打开 / 名称）
+  const pinned = list.filter(p => p.favorite)
+  const unpinned = list.filter(p => !p.favorite)
+
+  const sortFn = (a: typeof list[0], b: typeof list[0]) => {
+    if (sortMode.value === 'name') {
+      return a.name.localeCompare(b.name)
+    }
+    const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
+    const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
+    return tb - ta
+  }
+
+  // 分别对两组应用相同的排序规则，并合并结果
+  return [...pinned.sort(sortFn), ...unpinned.sort(sortFn)]
 })
 
 function setViewMode(mode: ViewMode) {
@@ -100,70 +106,38 @@ function setViewMode(mode: ViewMode) {
 function setSortMode(mode: SortMode) {
   sortMode.value = mode
   localStorage.setItem('gitvista-sort-mode', mode)
-  // 切换到自定义排序时，如果 customOrder 为空，用当前展示顺序初始化
+
+  // 如果首次切换到自定义排序且没有数据，按照当前列表的顺序初始化 customOrder
   if (mode === 'custom' && customOrder.value.length === 0) {
     customOrder.value = store.projects.map(p => p.path)
     saveCustomOrder()
   }
 }
 
-function onDragStart(event: DragEvent, path: string) {
-  if (!isDraggable.value) return
-  draggingPath.value = path
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', path)
-  }
-  // 给拖拽元素一个延迟透明效果
-  requestAnimationFrame(() => {
-    draggingPath.value = path
-  })
-}
-
-function onDragOver(event: DragEvent, path: string) {
-  if (!draggingPath.value || draggingPath.value === path) return
-  event.preventDefault()
-  dragOverPath.value = path
-}
-
-function onDragLeave(path: string) {
-  if (dragOverPath.value === path) {
-    dragOverPath.value = null
-  }
-}
-
-function onDrop(event: DragEvent, targetPath: string) {
-  event.preventDefault()
-  if (!draggingPath.value || draggingPath.value === targetPath) return
-
-  // 直接操作 customOrder 而不是从 computed 读取
-  const order = [...customOrder.value]
-  const dragIndex = order.indexOf(draggingPath.value)
-  const targetIndex = order.indexOf(targetPath)
-
-  if (dragIndex === -1 || targetIndex === -1) return
-
-  // 把拖拽项从原位置取出并插入到目标位置
-  order.splice(dragIndex, 1)
-  order.splice(targetIndex, 0, draggingPath.value)
-
-  customOrder.value = order
-  saveCustomOrder()
-
-  dragOverPath.value = null
-}
-
-function onDragEnd() {
-  draggingPath.value = null
-  dragOverPath.value = null
-}
-
-function saveCustomOrder() {
-  localStorage.setItem('gitvista-custom-order', JSON.stringify(customOrder.value))
-}
-
-async function handleToggleFavorite(path: string) {
+async function handleTogglePin(path: string) {
   await store.toggleFavorite(path)
+}
+
+function handleMoveUp(path: string) {
+  const currentIndex = customOrder.value.indexOf(path)
+  if (currentIndex > 0) {
+    const newOrder = [...customOrder.value]
+    const item = newOrder.splice(currentIndex, 1)[0]!
+    newOrder.splice(currentIndex - 1, 0, item)
+    customOrder.value = newOrder
+    saveCustomOrder()
+  }
+}
+
+function handleMoveDown(path: string) {
+  const currentIndex = customOrder.value.indexOf(path)
+  if (currentIndex !== -1 && currentIndex < customOrder.value.length - 1) {
+    const newOrder = [...customOrder.value]
+    const item = newOrder.splice(currentIndex, 1)[0]!
+    newOrder.splice(currentIndex + 1, 0, item)
+    customOrder.value = newOrder
+    saveCustomOrder()
+  }
 }
 
 onMounted(() => {
@@ -312,7 +286,6 @@ async function selectCloneTarget() {
         />
       </div>
       <div class="sort-control">
-        <ArrowUpDown :size="13" />
         <button
           class="sort-btn"
           :class="{ active: sortMode === 'recent' }"
@@ -326,9 +299,8 @@ async function selectCloneTarget() {
         <button
           class="sort-btn"
           :class="{ active: sortMode === 'custom' }"
-          title="拖拽项目可自定义排序"
           @click="setSortMode('custom')"
-        >自定义</button>
+        >自定义排序</button>
       </div>
     </div>
 
@@ -346,13 +318,6 @@ async function selectCloneTarget() {
           v-for="project in filteredProjects"
           :key="project.path"
           class="project-card"
-          :class="{ 'dragging': draggingPath === project.path, 'drag-over': dragOverPath === project.path }"
-          :draggable="isDraggable"
-          @dragstart="onDragStart($event, project.path)"
-          @dragover="onDragOver($event, project.path)"
-          @dragleave="onDragLeave(project.path)"
-          @drop="onDrop($event, project.path)"
-          @dragend="onDragEnd"
           @click="handleOpenProject(project.path)"
         >
           <div class="card-avatar" :style="{ background: getAvatarColor(project.name) }">
@@ -362,13 +327,30 @@ async function selectCloneTarget() {
             <div class="card-header">
               <h3 class="card-title" :title="project.name">{{ project.name }}</h3>
               <div class="card-header-actions">
+                <template v-if="sortMode === 'custom'">
+                  <button
+                    class="btn-icon card-move"
+                    title="上移"
+                    @click.stop="handleMoveUp(project.path)"
+                  >
+                    <ArrowUp :size="14" />
+                  </button>
+                  <button
+                    class="btn-icon card-move"
+                    title="下移"
+                    @click.stop="handleMoveDown(project.path)"
+                  >
+                    <ArrowDown :size="14" />
+                  </button>
+                </template>
                 <button
-                  class="btn-icon card-fav"
-                  :class="{ favorited: project.favorite }"
-                  :title="project.favorite ? '取消收藏' : '收藏'"
-                  @click.stop="handleToggleFavorite(project.path)"
+                  v-else
+                  class="btn-icon card-pin"
+                  :class="{ pinned: project.favorite }"
+                  :title="project.favorite ? '取消置顶' : '置顶'"
+                  @click.stop="handleTogglePin(project.path)"
                 >
-                  <Star :size="14" />
+                  <Pin :size="14" />
                 </button>
                 <button
                   class="btn-icon card-delete"
@@ -413,23 +395,35 @@ async function selectCloneTarget() {
           v-for="project in filteredProjects"
           :key="project.path"
           class="list-row"
-          :class="{ 'dragging': draggingPath === project.path, 'drag-over': dragOverPath === project.path }"
-          :draggable="isDraggable"
-          @dragstart="onDragStart($event, project.path)"
-          @dragover="onDragOver($event, project.path)"
-          @dragleave="onDragLeave(project.path)"
-          @drop="onDrop($event, project.path)"
-          @dragend="onDragEnd"
           @click="handleOpenProject(project.path)"
         >
           <span class="list-col-name">
+            <template v-if="sortMode === 'custom'">
+              <div class="list-move-actions">
+                 <button
+                   class="btn-icon list-move"
+                   title="上移"
+                   @click.stop="handleMoveUp(project.path)"
+                 >
+                   <ArrowUp :size="12" />
+                 </button>
+                 <button
+                   class="btn-icon list-move"
+                   title="下移"
+                   @click.stop="handleMoveDown(project.path)"
+                 >
+                   <ArrowDown :size="12" />
+                 </button>
+              </div>
+            </template>
             <button
-              class="btn-icon list-fav"
-              :class="{ favorited: project.favorite }"
-              :title="project.favorite ? '取消收藏' : '收藏'"
-              @click.stop="handleToggleFavorite(project.path)"
+              v-else
+              class="btn-icon list-pin"
+              :class="{ pinned: project.favorite }"
+              :title="project.favorite ? '取消置顶' : '置顶'"
+              @click.stop="handleTogglePin(project.path)"
             >
-              <Star :size="13" />
+              <Pin :size="13" />
             </button>
             <span class="list-avatar" :style="{ background: getAvatarColor(project.name) }">
               {{ project.name.charAt(0).toUpperCase() }}
@@ -782,27 +776,54 @@ async function selectCloneTarget() {
   flex-shrink: 0;
 }
 
-.card-fav,
-.list-fav {
+.card-pin,
+.list-pin {
   color: var(--text-muted);
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
 }
 
-.card-fav.favorited,
-.list-fav.favorited {
+.card-pin.pinned,
+.list-pin.pinned {
   opacity: 1;
-  color: var(--accent-yellow);
+  color: var(--accent-blue);
+  fill: var(--accent-blue);
 }
 
-.project-card:hover .card-fav,
-.list-row:hover .list-fav {
+.card-move,
+.list-move {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.project-card:hover .card-pin,
+.list-row:hover .list-pin,
+.project-card:hover .card-move,
+.list-row:hover .list-move {
   opacity: 1;
 }
 
-.card-fav:hover,
-.list-fav:hover {
-  color: var(--accent-yellow) !important;
+.card-pin:hover,
+.list-pin:hover {
+  color: var(--accent-blue) !important;
+}
+
+.card-move:hover,
+.list-move:hover {
+  color: var(--accent-blue) !important;
+}
+
+.list-move-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 4px;
+}
+.list-move-actions .btn-icon {
+  width: 14px;
+  height: 14px;
+  padding: 0;
 }
 
 .project-card:hover .card-delete {
@@ -1061,20 +1082,5 @@ async function selectCloneTarget() {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
-}
-/* ===== 拖拽状态 ===== */
-.project-card.dragging,
-.list-row.dragging {
-  opacity: 0.35;
-  border-color: var(--accent-blue);
-}
-
-.project-card.drag-over {
-  border-color: var(--accent-blue);
-  box-shadow: inset 0 2px 0 0 var(--accent-blue);
-}
-
-.list-row.drag-over {
-  border-top: 2px solid var(--accent-blue);
 }
 </style>

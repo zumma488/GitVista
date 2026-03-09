@@ -9,6 +9,8 @@ pub struct Project {
     pub last_opened: Option<String>,
     #[serde(default)]
     pub favorite: bool,
+    #[serde(default)]
+    pub pinned_at: Option<String>,
 }
 
 fn store_dir() -> PathBuf {
@@ -58,6 +60,7 @@ pub fn add_project(name: &str, path: &str) -> Result<Vec<Project>, String> {
         path: path.to_string(),
         last_opened: Some(chrono::Local::now().to_rfc3339()),
         favorite: false,
+        pinned_at: None,
     });
 
     save_projects(&projects)?;
@@ -84,6 +87,11 @@ pub fn toggle_favorite(path: &str) -> Result<Vec<Project>, String> {
     let mut projects = load_projects();
     if let Some(project) = projects.iter_mut().find(|p| p.path == path) {
         project.favorite = !project.favorite;
+        if project.favorite {
+            project.pinned_at = Some(chrono::Local::now().to_rfc3339());
+        } else {
+            project.pinned_at = None;
+        }
     }
     save_projects(&projects)?;
     Ok(projects)
