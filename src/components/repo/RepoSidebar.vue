@@ -16,6 +16,7 @@ import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
+import VirtualScroller from 'primevue/virtualscroller'
 
 const repo = useRepoStore()
 const createBranchDialog = ref<InstanceType<typeof CreateBranchDialog>>()
@@ -121,6 +122,21 @@ function stopResize() {
   document.body.style.cursor = ''
   localStorage.setItem('repo_sidebar_width', sidebarWidth.value.toString())
 }
+
+import { onMounted, onUnmounted } from 'vue'
+const windowHeight = ref(window.innerHeight)
+
+function updateWindowHeight() {
+  windowHeight.value = window.innerHeight
+}
+
+onMounted(() => {
+  window.addEventListener('resize', updateWindowHeight)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateWindowHeight)
+})
 </script>
 
 <template>
@@ -175,30 +191,36 @@ function stopResize() {
             </div>
           </AccordionHeader>
           <AccordionContent>
-            <div class="branch-list">
-              <div
-                v-for="branch in filteredLocalBranches"
-                :key="branch.name"
-                class="branch-item"
-                :class="{ current: branch.is_current }"
-                @click="!branch.is_current && repo.checkoutBranch(branch.name)"
-                @contextmenu.prevent="showBranchCtxMenu($event, branch)"
-              >
-                <GitBranch :size="13" />
-                <span class="branch-name">{{ branch.name }}</span>
-                <Button
-                  v-if="!branch.is_current"
-                  variant="text" severity="danger"
-                  class="!p-1 h-6 w-6 branch-delete"
-                  title="删除分支"
-                  @click.stop="repo.deleteBranch(branch.name)"
+            <VirtualScroller
+              v-if="filteredLocalBranches.length > 0"
+              :items="filteredLocalBranches"
+              :itemSize="28"
+              class="branch-list-scroller"
+              :style="{ height: Math.min(filteredLocalBranches.length * 28, windowHeight * 0.4) + 'px' }"
+            >
+              <template #item="{ item: branch }">
+                <div
+                  class="branch-item"
+                  :class="{ current: branch.is_current }"
+                  @click="!branch.is_current && repo.checkoutBranch(branch.name)"
+                  @contextmenu.prevent="showBranchCtxMenu($event, branch)"
                 >
-                  <Trash2 :size="11" />
-                </Button>
-              </div>
-              <div v-if="filteredLocalBranches.length === 0 && branchSearch" class="branch-empty">
-                无匹配分支
-              </div>
+                  <GitBranch :size="13" />
+                  <span class="branch-name" :title="branch.name">{{ branch.name }}</span>
+                  <Button
+                    v-if="!branch.is_current"
+                    variant="text" severity="danger"
+                    class="!p-1 h-6 w-6 branch-delete"
+                    title="删除分支"
+                    @click.stop="repo.deleteBranch(branch.name)"
+                  >
+                    <Trash2 :size="11" />
+                  </Button>
+                </div>
+              </template>
+            </VirtualScroller>
+            <div v-if="filteredLocalBranches.length === 0 && branchSearch" class="branch-empty">
+              无匹配分支
             </div>
           </AccordionContent>
         </AccordionPanel>
@@ -209,20 +231,26 @@ function stopResize() {
             <span class="section-title">远程分支</span>
           </AccordionHeader>
           <AccordionContent>
-            <div class="branch-list">
-              <div
-                v-for="branch in filteredRemoteBranches"
-                :key="branch.name"
-                class="branch-item remote"
-                title="点击检出到本地"
-                @click="checkoutRemoteBranch(branch.name)"
-              >
-                <Download :size="13" />
-                <span class="branch-name">{{ branch.name }}</span>
-              </div>
-              <div v-if="filteredRemoteBranches.length === 0 && branchSearch" class="branch-empty">
-                无匹配分支
-              </div>
+            <VirtualScroller
+              v-if="filteredRemoteBranches.length > 0"
+              :items="filteredRemoteBranches"
+              :itemSize="28"
+              class="branch-list-scroller"
+              :style="{ height: Math.min(filteredRemoteBranches.length * 28, windowHeight * 0.4) + 'px' }"
+            >
+              <template #item="{ item: branch }">
+                <div
+                  class="branch-item remote"
+                  title="点击检出到本地"
+                  @click="checkoutRemoteBranch(branch.name)"
+                >
+                  <Download :size="13" />
+                  <span class="branch-name" :title="branch.name">{{ branch.name }}</span>
+                </div>
+              </template>
+            </VirtualScroller>
+            <div v-if="filteredRemoteBranches.length === 0 && branchSearch" class="branch-empty">
+              无匹配分支
             </div>
           </AccordionContent>
         </AccordionPanel>
@@ -236,19 +264,25 @@ function stopResize() {
             </div>
           </AccordionHeader>
           <AccordionContent>
-            <div class="branch-list">
-              <div
-                v-for="branch in mergableBranches"
-                :key="'merge-' + branch.name"
-                class="branch-item"
-                @click="handleMerge(branch.name)"
-              >
-                <GitBranch :size="13" />
-                <span class="branch-name">{{ branch.name }}</span>
-                <span class="merge-hint">合并到当前</span>
-              </div>
-              <div v-if="mergableBranches.length === 0" class="branch-empty">无可合并分支</div>
-            </div>
+            <VirtualScroller
+              v-if="mergableBranches.length > 0"
+              :items="mergableBranches"
+              :itemSize="28"
+              class="branch-list-scroller"
+              :style="{ height: Math.min(mergableBranches.length * 28, windowHeight * 0.4) + 'px' }"
+            >
+              <template #item="{ item: branch }">
+                <div
+                  class="branch-item"
+                  @click="handleMerge(branch.name)"
+                >
+                  <GitBranch :size="13" />
+                  <span class="branch-name" :title="branch.name">{{ branch.name }}</span>
+                  <span class="merge-hint">合并到当前</span>
+                </div>
+              </template>
+            </VirtualScroller>
+            <div v-if="mergableBranches.length === 0" class="branch-empty">无可合并分支</div>
           </AccordionContent>
         </AccordionPanel>
 
@@ -279,6 +313,7 @@ function stopResize() {
               />
             </div>
 
+<!-- 暂时不对 Stash 进行虚拟化，因为多数人的 stash 不会达到成百上千那么多，保留原样 -->
             <div class="branch-list">
               <div
                 v-for="stash in repo.stashes"
@@ -286,7 +321,7 @@ function stopResize() {
                 class="stash-item"
               >
                 <Archive :size="13" />
-                <span class="branch-name">{{ stash.message }}</span>
+                <span class="branch-name" :title="stash.message">{{ stash.message }}</span>
                 <div class="stash-actions">
                   <Button variant="text" severity="secondary" class="!p-1 h-5 w-5" title="应用 (保留)" @click.stop="repo.stashApply(stash.index)">
                     <Play :size="11" />
@@ -448,6 +483,24 @@ function stopResize() {
 }
 
 .sidebar-scrollable::-webkit-scrollbar-thumb {
+  background-color: var(--border-default);
+  border-radius: 4px;
+}
+
+.branch-list-scroller {
+  /* 使用 max-height 以配合 autoSize 实现自适应不溢出 */
+  max-height: 40vh;
+  overflow-x: hidden;
+  /* 美化内部滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.branch-list-scroller::-webkit-scrollbar {
+  width: 4px;
+}
+
+.branch-list-scroller::-webkit-scrollbar-thumb {
   background-color: var(--border-default);
   border-radius: 4px;
 }
