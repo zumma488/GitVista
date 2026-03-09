@@ -34,7 +34,7 @@ const cloneUrl = ref('')
 const cloneTarget = ref('')
 const cloning = ref(false)
 const searchQuery = ref('')
-const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'custom')
+const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'recent')
 const customOrder = ref<string[]>(JSON.parse(localStorage.getItem('gitvista-custom-order') || '[]'))
 const draggingPath = ref<string | null>(null)
 const dragOverPath = ref<string | null>(null)
@@ -315,11 +315,6 @@ async function selectCloneTarget() {
         <ArrowUpDown :size="13" />
         <button
           class="sort-btn"
-          :class="{ active: sortMode === 'custom' }"
-          @click="setSortMode('custom')"
-        >自定义排序</button>
-        <button
-          class="sort-btn"
           :class="{ active: sortMode === 'recent' }"
           @click="setSortMode('recent')"
         >最近打开</button>
@@ -328,6 +323,12 @@ async function selectCloneTarget() {
           :class="{ active: sortMode === 'name' }"
           @click="setSortMode('name')"
         >名称</button>
+        <button
+          class="sort-btn"
+          :class="{ active: sortMode === 'custom' }"
+          title="拖拽项目可自定义排序"
+          @click="setSortMode('custom')"
+        >自定义</button>
       </div>
     </div>
 
@@ -1064,25 +1065,16 @@ async function selectCloneTarget() {
 /* ===== 拖拽状态 ===== */
 .project-card.dragging,
 .list-row.dragging {
-  opacity: 0.4;
+  opacity: 0.35;
   border-color: var(--accent-blue);
-  background: var(--bg-active);
 }
 
-.project-card.drag-over,
+.project-card.drag-over {
+  border-color: var(--accent-blue);
+  box-shadow: inset 0 2px 0 0 var(--accent-blue);
+}
+
 .list-row.drag-over {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px var(--accent-blue);
-  position: relative;
-}
-
-.project-card[draggable='true'],
-.list-row[draggable='true'] {
-  cursor: grab;
-}
-
-.project-card[draggable='true']:active,
-.list-row[draggable='true']:active {
-  cursor: grabbing;
+  border-top: 2px solid var(--accent-blue);
 }
 </style>
