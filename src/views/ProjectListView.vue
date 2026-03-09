@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore } from '@/stores/projects'
 import { useRepoStore } from '@/stores/repo'
@@ -37,6 +37,32 @@ const searchQuery = ref('')
 const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'custom')
 const customOrder = ref<string[]>(JSON.parse(localStorage.getItem('gitvista-custom-order') || '[]'))
 const draggingPath = ref<string | null>(null)
+const dragOverPath = ref<string | null>(null)
+
+// 是否正在搜索（搜索时禁用拖拽，防止排序数据丢失）
+const isSearching = computed(() => searchQuery.value.trim().length > 0)
+
+// 是否可拖拽（仅在自定义排序且非搜索时）
+const isDraggable = computed(() => sortMode.value === 'custom' && !isSearching.value)
+
+// 当项目列表变化时（添加/删除项目），同步更新 customOrder
+watch(() => store.projects, (projects) => {
+  const currentPaths = new Set(projects.map(p => p.path))
+  // 移除 customOrder 中已不存在的项目
+  const filtered = customOrder.value.filter(p => currentPaths.has(p))
+  // 添加 customOrder 中缺失的新项目（追加到末尾）
+  const existingPaths = new Set(filtered)
+  for (const p of projects) {
+    if (!existingPaths.has(p.path)) {
+      filtered.push(p.path)
+    }
+  }
+  if (filtered.length !== customOrder.value.length ||
+      filtered.some((p, i) => p !== customOrder.value[i])) {
+    customOrder.value = filtered
+    saveCustomOrder()
+  }
+}, { deep: true })
 
 const filteredProjects = computed(() => {
   let list = store.projects
@@ -49,11 +75,7 @@ const filteredProjects = computed(() => {
     return [...list].sort((a, b) => {
       const indexA = customOrder.value.indexOf(a.path)
       const indexB = customOrder.value.indexOf(b.path)
-      if (indexA === -1 && indexB === -1) {
-        const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
-        const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
-        return tb - ta
-      }
+      if (indexA === -1 && indexB === -1) return 0
       if (indexA === -1) return 1
       if (indexB === -1) return -1
       return indexA - indexB
@@ -78,41 +100,65 @@ function setViewMode(mode: ViewMode) {
 function setSortMode(mode: SortMode) {
   sortMode.value = mode
   localStorage.setItem('gitvista-sort-mode', mode)
+  // 切换到自定义排序时，如果 customOrder 为空，用当前展示顺序初始化
+  if (mode === 'custom' && customOrder.value.length === 0) {
+    customOrder.value = store.projects.map(p => p.path)
+    saveCustomOrder()
+  }
 }
 
 function onDragStart(event: DragEvent, path: string) {
-  if (sortMode.value !== 'custom') {
-    setSortMode('custom')
-  }
+  if (!isDraggable.value) return
   draggingPath.value = path
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.dropEffect = 'move'
+    event.dataTransfer.setData('text/plain', path)
+  }
+  // 给拖拽元素一个延迟透明效果
+  requestAnimationFrame(() => {
+    draggingPath.value = path
+  })
+}
+
+function onDragOver(event: DragEvent, path: string) {
+  if (!draggingPath.value || draggingPath.value === path) return
+  event.preventDefault()
+  dragOverPath.value = path
+}
+
+function onDragLeave(path: string) {
+  if (dragOverPath.value === path) {
+    dragOverPath.value = null
   }
 }
 
-function onDragEnter(event: DragEvent, path: string) {
-  if (!draggingPath.value || draggingPath.value === path) return
+function onDrop(event: DragEvent, targetPath: string) {
+  event.preventDefault()
+  if (!draggingPath.value || draggingPath.value === targetPath) return
 
-  const currentList = filteredProjects.value.map(p => p.path)
-
-  const dragIndex = currentList.indexOf(draggingPath.value)
-  const targetIndex = currentList.indexOf(path)
+  // 直接操作 customOrder 而不是从 computed 读取
+  const order = [...customOrder.value]
+  const dragIndex = order.indexOf(draggingPath.value)
+  const targetIndex = order.indexOf(targetPath)
 
   if (dragIndex === -1 || targetIndex === -1) return
 
-  currentList.splice(dragIndex, 1)
-  currentList.splice(targetIndex, 0, draggingPath.value)
+  // 把拖拽项从原位置取出并插入到目标位置
+  order.splice(dragIndex, 1)
+  order.splice(targetIndex, 0, draggingPath.value)
 
-  updateCustomOrder(currentList)
+  customOrder.value = order
+  saveCustomOrder()
+
+  dragOverPath.value = null
 }
 
 function onDragEnd() {
   draggingPath.value = null
+  dragOverPath.value = null
 }
 
-function updateCustomOrder(list: string[]) {
-  customOrder.value = [...list]
+function saveCustomOrder() {
   localStorage.setItem('gitvista-custom-order', JSON.stringify(customOrder.value))
 }
 
@@ -299,11 +345,12 @@ async function selectCloneTarget() {
           v-for="project in filteredProjects"
           :key="project.path"
           class="project-card"
-          :class="{ 'dragging': draggingPath === project.path }"
-          draggable="true"
+          :class="{ 'dragging': draggingPath === project.path, 'drag-over': dragOverPath === project.path }"
+          :draggable="isDraggable"
           @dragstart="onDragStart($event, project.path)"
-          @dragenter="onDragEnter($event, project.path)"
-          @dragover.prevent
+          @dragover="onDragOver($event, project.path)"
+          @dragleave="onDragLeave(project.path)"
+          @drop="onDrop($event, project.path)"
           @dragend="onDragEnd"
           @click="handleOpenProject(project.path)"
         >
@@ -365,11 +412,12 @@ async function selectCloneTarget() {
           v-for="project in filteredProjects"
           :key="project.path"
           class="list-row"
-          :class="{ 'dragging': draggingPath === project.path }"
-          draggable="true"
+          :class="{ 'dragging': draggingPath === project.path, 'drag-over': dragOverPath === project.path }"
+          :draggable="isDraggable"
           @dragstart="onDragStart($event, project.path)"
-          @dragenter="onDragEnter($event, project.path)"
-          @dragover.prevent
+          @dragover="onDragOver($event, project.path)"
+          @dragleave="onDragLeave(project.path)"
+          @drop="onDrop($event, project.path)"
           @dragend="onDragEnd"
           @click="handleOpenProject(project.path)"
         >
@@ -1016,8 +1064,25 @@ async function selectCloneTarget() {
 /* ===== 拖拽状态 ===== */
 .project-card.dragging,
 .list-row.dragging {
-  opacity: 0.5;
+  opacity: 0.4;
   border-color: var(--accent-blue);
   background: var(--bg-active);
+}
+
+.project-card.drag-over,
+.list-row.drag-over {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--accent-blue);
+  position: relative;
+}
+
+.project-card[draggable='true'],
+.list-row[draggable='true'] {
+  cursor: grab;
+}
+
+.project-card[draggable='true']:active,
+.list-row[draggable='true']:active {
+  cursor: grabbing;
 }
 </style>
