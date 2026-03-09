@@ -434,6 +434,24 @@ function stopResize() {
   color: var(--text-muted);
 }
 
+.sidebar-scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* 美化主滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.sidebar-scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb {
+  background-color: var(--border-default);
+  border-radius: 4px;
+}
+
 /* Accordion 覆写 */
 :deep(.p-accordionpanel) {
   border: none !important;
@@ -476,10 +494,6 @@ function stopResize() {
 
 :deep(.p-accordionheader:hover) .section-action {
   opacity: 1;
-}
-
-.branch-list {
-  /* ... */
 }
 
 .branch-item {
