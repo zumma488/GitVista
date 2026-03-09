@@ -265,6 +265,10 @@ pub fn fetch_all(path: &str) -> Result<String, String> {
     run_git(path, &["fetch", "--all"])
 }
 
+pub fn fetch_branch(path: &str, branch: &str) -> Result<String, String> {
+    run_git(path, &["fetch", "origin", branch])
+}
+
 pub fn checkout_branch(path: &str, branch: &str) -> Result<(), String> {
     run_git(path, &["checkout", branch])?;
     Ok(())
@@ -357,6 +361,59 @@ pub fn open_in_vscode(repo_path: &str, file: Option<&str>) -> Result<(), String>
             .arg(&target)
             .spawn()
             .map_err(|e| format!("无法打开 VSCode: {}", e))?;
+    }
+
+    Ok(())
+}
+
+pub fn open_terminal(repo_path: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "cmd.exe", "/K", "cd", "/d", repo_path])
+            .spawn()
+            .map_err(|e| format!("无法打开终端: {}", e))?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // 简单处理，对于 macOS 可以调用 open -a Terminal，Linux 视环境而定
+        Command::new("open")
+            .args(["-a", "Terminal", repo_path])
+            .spawn()
+            .map_err(|e| format!("无法打开终端: {}", e))?;
+    }
+
+    Ok(())
+}
+
+pub fn open_remote(repo_path: &str) -> Result<(), String> {
+    let output = run_git(repo_path, &["remote", "get-url", "origin"])?;
+    let mut url = output.trim().to_string();
+    
+    // 如果是 ssh 格式类似 git@github.com:user/repo.git，则替换为 https 链接
+    if url.starts_with("git@") {
+        url = url.replace(":", "/").replace("git@", "https://");
+    }
+    if url.ends_with(".git") {
+        url = url.trim_end_matches(".git").to_string();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", &url])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| format!("无法在浏览器中打开远端: {}", e))?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("无法在浏览器中打开远端: {}", e))?;
     }
 
     Ok(())

@@ -187,6 +187,19 @@ export const useRepoStore = defineStore('repo', () => {
     }
   }
 
+  async function fetchBranch(branch: string) {
+    operating.value = true
+    try {
+      await invoke<string>('fetch_branch', { path: path.value, branch })
+      showToast('success', `成功获取远程分支：${branch}`)
+      await refresh()
+    } catch (e) {
+      showToast('error', `获取分支失败: ${e}`)
+    } finally {
+      operating.value = false
+    }
+  }
+
   async function checkoutBranch(branch: string) {
     operating.value = true
     try {
@@ -254,6 +267,22 @@ export const useRepoStore = defineStore('repo', () => {
   async function openInVscode(file?: string) {
     try {
       await invoke('open_in_vscode', { repoPath: path.value, file: file || null })
+    } catch (e) {
+      showToast('error', `${e}`)
+    }
+  }
+
+  async function openTerminal() {
+    try {
+      await invoke('open_terminal', { repoPath: path.value })
+    } catch (e) {
+      showToast('error', `${e}`)
+    }
+  }
+
+  async function openRemote() {
+    try {
+      await invoke('open_remote', { repoPath: path.value })
     } catch (e) {
       showToast('error', `${e}`)
     }
@@ -487,6 +516,7 @@ export const useRepoStore = defineStore('repo', () => {
     pull,
     push,
     fetch,
+    fetchBranch,
     checkoutBranch,
     createBranch,
     deleteBranch,
@@ -494,6 +524,8 @@ export const useRepoStore = defineStore('repo', () => {
     discardAllChanges,
     selectCommit,
     openInVscode,
+    openTerminal,
+    openRemote,
     stashes,
     refreshStashes,
     stashSave,

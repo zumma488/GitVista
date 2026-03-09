@@ -9,6 +9,8 @@ import {
   ArrowUpFromLine,
   RefreshCw,
   Code2,
+  Globe,
+  Terminal,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -74,6 +76,26 @@ function repoName(): string {
         Push
       </Button>
       <span class="toolbar-divider" />
+      <Button
+        variant="text"
+        severity="secondary"
+        title="打开远端"
+        @click="repo.openRemote()"
+        class="!py-1 !px-3 h-8 text-sm"
+      >
+        <Globe :size="14" class="mr-2" />
+        远端
+      </Button>
+      <Button
+        variant="text"
+        severity="secondary"
+        title="打开终端"
+        @click="repo.openTerminal()"
+        class="!py-1 !px-3 h-8 text-sm"
+      >
+        <Terminal :size="14" class="mr-2" />
+        终端
+      </Button>
       <Button
         variant="text"
         severity="secondary"

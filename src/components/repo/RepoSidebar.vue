@@ -76,7 +76,15 @@ function showBranchCtxMenu(e: MouseEvent, branch: BranchInfo) {
       repo.renameBranch(branch.name, newName)
     }
   }})
+
+  items.push({ label: `获取 ${branch.name}`, icon: Download, action: () => repo.fetchBranch(branch.name) })
+
   if (!branch.is_current) {
+    items.push({ label: `合并 ${branch.name} 到当前`, icon: GitMerge, action: () => {
+      if (confirm(`确定要将分支 ${branch.name} 合并到当前分支吗？`)) {
+        repo.mergeBranch(branch.name)
+      }
+    }})
     items.push({ label: '', action: () => {}, divider: true })
     items.push({ label: '删除分支', icon: Trash2, action: () => repo.deleteBranch(branch.name), danger: true })
   }
