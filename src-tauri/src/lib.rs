@@ -99,6 +99,11 @@ fn git_fetch(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+fn fetch_branch(path: String, branch: String) -> Result<String, String> {
+    git::fetch_branch(&path, &branch)
+}
+
+#[tauri::command]
 fn checkout_branch(path: String, branch: String) -> Result<(), String> {
     git::checkout_branch(&path, &branch)
 }
@@ -131,6 +136,16 @@ fn get_commit_files(path: String, hash: String) -> Result<Vec<git::CommitFile>, 
 #[tauri::command]
 fn open_in_vscode(repo_path: String, file: Option<String>) -> Result<(), String> {
     git::open_in_vscode(&repo_path, file.as_deref())
+}
+
+#[tauri::command]
+fn open_terminal(repo_path: String) -> Result<(), String> {
+    git::open_terminal(&repo_path)
+}
+
+#[tauri::command]
+fn open_remote(repo_path: String) -> Result<(), String> {
+    git::open_remote(&repo_path)
 }
 
 #[tauri::command]
@@ -304,6 +319,7 @@ pub fn run() {
             git_pull,
             git_push,
             git_fetch,
+            fetch_branch,
             checkout_branch,
             create_branch,
             delete_branch,
@@ -311,6 +327,8 @@ pub fn run() {
             discard_all_changes,
             get_commit_files,
             open_in_vscode,
+            open_terminal,
+            open_remote,
             clone_repo,
             stash_list,
             stash_save,
