@@ -3,6 +3,12 @@ import { ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import type { RepoInfo, FileChange, BranchInfo, CommitInfo, CommitFile, StashEntry, Toast } from '@/types'
 
+export interface BranchStat {
+  name: string
+  ahead: number
+  behind: number
+}
+
 export const useRepoStore = defineStore('repo', () => {
   const path = ref('')
   const info = ref<RepoInfo | null>(null)
@@ -17,6 +23,9 @@ export const useRepoStore = defineStore('repo', () => {
   const selectedCommitFiles = ref<CommitFile[]>([])
   const stashes = ref<StashEntry[]>([])
   const toasts = ref<Toast[]>([])
+  // key: 分支名，value: { ahead, behind }；手动触发后填充
+  const branchStatsMap = ref<Record<string, BranchStat>>({})
+  const branchStatsLoading = ref(false)
 
   let toastId = 0
 
@@ -473,6 +482,25 @@ export const useRepoStore = defineStore('repo', () => {
     }
   }
 
+  // ===== 分支 ahead/behind 统计（手动触发，单次批量获取）=====
+
+  async function loadBranchStats() {
+    if (branchStatsLoading.value) return
+    branchStatsLoading.value = true
+    try {
+      const stats = await invoke<BranchStat[]>('get_branch_stats', { path: path.value })
+      const map: Record<string, BranchStat> = {}
+      for (const s of stats) {
+        map[s.name] = s
+      }
+      branchStatsMap.value = map
+    } catch (e) {
+      showToast('error', `获取分支统计失败: ${e}`)
+    } finally {
+      branchStatsLoading.value = false
+    }
+  }
+
   async function pullRebase() {
     operating.value = true
     try {
@@ -541,5 +569,8 @@ export const useRepoStore = defineStore('repo', () => {
     renameBranch,
     forcePush,
     pullRebase,
+    branchStatsMap,
+    branchStatsLoading,
+    loadBranchStats,
   }
 })

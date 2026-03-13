@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRepoStore } from '@/stores/repo'
 import {
   GitBranch, FileText, History, Plus, Trash2,
-  Search, Archive, Play, ArrowDownToLine, GitMerge, Download, PenLine, LogIn,
+  Search, Archive, Play, ArrowDownToLine, GitMerge, Download, PenLine, LogIn, LoaderCircle, BarChart2,
 } from 'lucide-vue-next'
 import ContextMenu from '@/components/ContextMenu.vue'
 import CreateBranchDialog from '@/components/CreateBranchDialog.vue'
@@ -188,6 +188,17 @@ onUnmounted(() => {
           <AccordionHeader>
             <div class="flex items-center w-full section-header-custom">
               <span class="section-title">本地分支</span>
+              <!-- 手动触发统计按钮 -->
+              <Button
+                variant="text" severity="secondary"
+                class="!p-1 h-6 w-6 ml-1 section-action"
+                :title="repo.branchStatsLoading ? '加载中...' : '刷新 Ahead/Behind 统计'"
+                :disabled="repo.branchStatsLoading"
+                @click.stop="repo.loadBranchStats()"
+              >
+                <LoaderCircle v-if="repo.branchStatsLoading" :size="12" class="spinning" />
+                <BarChart2 v-else :size="12" />
+              </Button>
               <Button
                 variant="text" severity="secondary"
                 class="!p-1 h-6 w-6 ml-auto section-action"
@@ -211,10 +222,23 @@ onUnmounted(() => {
                   class="branch-item"
                   :class="{ current: branch.is_current }"
                   @click="!branch.is_current && repo.checkoutBranch(branch.name)"
-                  @contextmenu.prevent="showBranchCtxMenu($event, branch)"
+                  @contextmenu.stop.prevent="showBranchCtxMenu($event, branch)"
                 >
                   <GitBranch :size="13" />
                   <span class="branch-name" :title="branch.name">{{ branch.name }}</span>
+                  <!-- ahead/behind 统计徽章 -->
+                  <template v-if="repo.branchStatsMap[branch.name]">
+                    <span
+                      v-if="repo.branchStatsMap[branch.name]!.ahead > 0"
+                      class="stat-badge stat-ahead"
+                      :title="`领先当前分支 ${repo.branchStatsMap[branch.name]!.ahead} 个提交`"
+                    >{{ repo.branchStatsMap[branch.name]!.ahead }}↑</span>
+                    <span
+                      v-if="repo.branchStatsMap[branch.name]!.behind > 0"
+                      class="stat-badge stat-behind"
+                      :title="`落后当前分支 ${repo.branchStatsMap[branch.name]!.behind} 个提交`"
+                    >{{ repo.branchStatsMap[branch.name]!.behind }}↓</span>
+                  </template>
                   <Button
                     v-if="!branch.is_current"
                     variant="text" severity="danger"
@@ -588,6 +612,27 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ahead/behind 统计徽章 */
+.stat-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 8px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-ahead {
+  background: rgba(56, 139, 253, 0.15);
+  color: var(--accent-blue);
+}
+
+.stat-behind {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--accent-yellow);
 }
 
 .branch-delete {

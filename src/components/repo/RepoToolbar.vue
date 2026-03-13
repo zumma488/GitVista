@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useRepoStore } from '@/stores/repo'
-import Button from 'primevue/button'
 import {
   ArrowLeft,
   GitBranch,
@@ -29,9 +28,9 @@ function repoName(): string {
 <template>
   <div class="toolbar">
     <div class="toolbar-left">
-      <Button variant="text" severity="secondary" aria-label="返回项目列表" title="返回项目列表" @click="goBack" class="!px-2 !py-2">
+      <button class="btn btn-ghost" aria-label="返回项目列表" title="返回项目列表" @click="goBack" style="padding: 4px;">
         <ArrowLeft :size="18" />
-      </Button>
+      </button>
       <span class="toolbar-divider" />
       <span class="repo-name">{{ repoName() }}</span>
 
@@ -42,70 +41,58 @@ function repoName(): string {
     </div>
 
     <div class="toolbar-right">
-      <Button
-        severity="secondary"
-        variant="outlined"
+      <button
+        class="btn btn-secondary"
         :disabled="repo.operating"
         title="Fetch"
         @click="repo.fetch()"
-        class="!py-1 !px-3 h-8 text-sm"
       >
-        <RefreshCw :size="14" :class="{ spinning: repo.operating }" class="mr-2" />
+        <RefreshCw :size="14" :class="{ spinning: repo.operating }" />
         Fetch
-      </Button>
-      <Button
-        severity="secondary"
-        variant="outlined"
+      </button>
+      <button
+        class="btn btn-secondary"
         :disabled="repo.operating"
         title="Pull"
         @click="repo.pull()"
-        class="!py-1 !px-3 h-8 text-sm"
       >
-        <ArrowDownToLine :size="14" class="mr-2" />
+        <ArrowDownToLine :size="14" />
         Pull
-      </Button>
-      <Button
-        severity="secondary"
-        variant="outlined"
+      </button>
+      <button
+        class="btn btn-secondary"
         :disabled="repo.operating"
         title="Push"
         @click="repo.push()"
-        class="!py-1 !px-3 h-8 text-sm"
       >
-        <ArrowUpFromLine :size="14" class="mr-2" />
+        <ArrowUpFromLine :size="14" />
         Push
-      </Button>
+      </button>
       <span class="toolbar-divider" />
-      <Button
-        variant="text"
-        severity="secondary"
+      <button
+        class="btn btn-ghost"
         title="打开远端"
         @click="repo.openRemote()"
-        class="!py-1 !px-3 h-8 text-sm"
       >
-        <Globe :size="14" class="mr-2" />
+        <Globe :size="14" />
         远端
-      </Button>
-      <Button
-        variant="text"
-        severity="secondary"
+      </button>
+      <button
+        class="btn btn-ghost"
         title="打开终端"
         @click="repo.openTerminal()"
-        class="!py-1 !px-3 h-8 text-sm"
       >
-        <Terminal :size="14" class="mr-2" />
+        <Terminal :size="14" />
         终端
-      </Button>
-      <Button
-        variant="text"
-        severity="secondary"
+      </button>
+      <button
+        class="btn btn-ghost"
         title="在 VSCode 中打开"
         @click="repo.openInVscode()"
-        class="!py-1 !px-3 h-8 text-sm"
       >
-        <Code2 :size="14" class="mr-2" />
+        <Code2 :size="14" />
         VSCode
-      </Button>
+      </button>
     </div>
   </div>
 </template>

@@ -233,6 +233,11 @@ fn toggle_favorite(path: String) -> Result<Vec<Project>, String> {
     store::toggle_favorite(&path)
 }
 
+#[tauri::command]
+fn get_branch_stats(path: String) -> Result<Vec<git::BranchStat>, String> {
+    git::get_branch_stats(&path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -346,6 +351,7 @@ pub fn run() {
             init_repo,
             search_commits,
             toggle_favorite,
+            get_branch_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

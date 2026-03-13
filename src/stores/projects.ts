@@ -12,9 +12,8 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     try {
       projects.value = await invoke<Project[]>('list_projects')
-      for (const project of projects.value) {
-        loadProjectInfo(project.path)
-      }
+      // 并行查询所有仓库信息，避免串行 git 命令导致首次加载卡顿
+      await Promise.all(projects.value.map(p => loadProjectInfo(p.path)))
     } finally {
       loading.value = false
     }

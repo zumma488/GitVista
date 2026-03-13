@@ -195,6 +195,39 @@ pub fn get_branches(path: &str) -> Result<Vec<BranchInfo>, String> {
     Ok(branches)
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct BranchStat {
+    pub name: String,
+    pub ahead: u32,
+    pub behind: u32,
+}
+
+/// 一次性获取所有本地分支相对于 HEAD 的 ahead/behind 数
+/// 使用单条 git for-each-ref 命令（Git ≥ 2.31），避免 N 次调用
+pub fn get_branch_stats(path: &str) -> Result<Vec<BranchStat>, String> {
+    let format = "%(refname:short)\x1f%(ahead-behind:HEAD)";
+    let output = run_git(
+        path,
+        &["for-each-ref", &format!("--format={}", format), "refs/heads/"],
+    )?;
+
+    let mut stats = Vec::new();
+    for line in output.lines() {
+        let parts: Vec<&str> = line.splitn(2, '\x1f').collect();
+        if parts.len() == 2 {
+            let name = parts[0].trim().to_string();
+            let counts: Vec<&str> = parts[1].trim().split_whitespace().collect();
+            if counts.len() == 2 {
+                let ahead = counts[0].parse::<u32>().unwrap_or(0);
+                let behind = counts[1].parse::<u32>().unwrap_or(0);
+                stats.push(BranchStat { name, ahead, behind });
+            }
+        }
+    }
+
+    Ok(stats)
+}
+
 pub fn get_commit_history(path: &str, count: usize) -> Result<Vec<CommitInfo>, String> {
     let format = "%H\x1f%h\x1f%s\x1f%an\x1f%ae\x1f%aI\x1f%P";
     let count_str = format!("-{}", count);
