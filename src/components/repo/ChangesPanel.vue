@@ -9,7 +9,6 @@ import {
   Code2,
   CheckCircle2,
   Trash2,
-  RotateCcw,
   PenLine,
 } from 'lucide-vue-next'
 import type { FileChange } from '@/types'
@@ -18,11 +17,56 @@ import type { MenuItem } from '@/components/ContextMenu.vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import VirtualScroller from 'primevue/virtualscroller'
+import Menu from 'primevue/menu'
+import { MoreVertical } from 'lucide-vue-next'
+import { useConfirm } from 'primevue/useconfirm'
 
 const repo = useRepoStore()
 const amendMode = ref(false)
 const ctxMenu = ref<InstanceType<typeof ContextMenu>>()
 const ctxMenuItems = ref<MenuItem[]>([])
+const moreMenuInfo = ref()
+const confirm = useConfirm()
+
+const moreMenuOptions = ref([
+  {
+    label: '危险操作',
+    items: [
+      {
+        label: '修改上次提交 (Amend)',
+        icon: 'pi pi-pencil',
+        command: (event: { originalEvent: Event }) => {
+          confirm.require({
+            target: event.originalEvent.currentTarget as HTMLElement,
+            message: '确定要进入修改上次提交模式吗？',
+            icon: 'pi pi-exclamation-triangle',
+            acceptProps: { label: '确认', severity: 'danger' },
+            rejectProps: { label: '取消', severity: 'secondary', variant: 'outlined' },
+            accept: () => { amendMode.value = true }
+          })
+        }
+      },
+      {
+        label: '撤销上次提交',
+        icon: 'pi pi-undo',
+        command: (event: { originalEvent: Event }) => {
+          confirm.require({
+            target: event.originalEvent.currentTarget as HTMLElement,
+            message: '确定要撤销上次提交吗？（更改将退回至暂存区）',
+            icon: 'pi pi-exclamation-triangle',
+            acceptProps: { label: '确认', severity: 'danger' },
+            rejectProps: { label: '取消', severity: 'secondary', variant: 'outlined' },
+            accept: () => { repo.undoLastCommit() }
+          })
+        }
+      }
+    ]
+  }
+])
+
+const toggleMoreMenu = (event: Event) => {
+  moreMenuInfo.value.toggle(event)
+}
 
 function showStagedCtxMenu(e: MouseEvent, file: FileChange) {
   ctxMenuItems.value = [
@@ -62,7 +106,7 @@ function statusColor(status: string): string {
     case 'deleted': return 'var(--accent-red)'
     case 'renamed': return 'var(--accent-purple)'
     case 'conflicted': return 'var(--accent-orange)'
-    default: return 'var(--text-muted)'
+    default: return 'var(--p-text-muted-color)'
   }
 }
 
@@ -91,9 +135,9 @@ function openFileInVscode(file: FileChange) {
         <span class="section-title">已暂存的更改</span>
         <span class="file-count">{{ repo.stagedFiles.length }}</span>
         <Button
-          v-if="repo.stagedFiles.length > 0"
           variant="text" severity="secondary"
           title="取消暂存全部"
+          :disabled="repo.stagedFiles.length === 0"
           @click="repo.unstageAll()"
           class="!p-1 h-6 w-6"
         >
@@ -135,18 +179,18 @@ function openFileInVscode(file: FileChange) {
         <span class="section-title">未暂存的更改</span>
         <span class="file-count">{{ repo.unstagedFiles.length }}</span>
         <Button
-          v-if="repo.unstagedFiles.length > 0"
           variant="text" severity="secondary"
           title="丢弃所有更改"
+          :disabled="repo.unstagedFiles.length === 0"
           @click="repo.discardAllChanges()"
           class="!p-1 h-6 w-6"
         >
           <Trash2 :size="13" />
         </Button>
         <Button
-          v-if="repo.unstagedFiles.length > 0"
           variant="text" severity="secondary"
           title="暂存全部"
+          :disabled="repo.unstagedFiles.length === 0"
           @click="repo.stageAll()"
           class="!p-1 h-6 w-6"
         >
@@ -200,23 +244,13 @@ function openFileInVscode(file: FileChange) {
           <Button
             variant="text"
             severity="secondary"
-            :class="{ '!text-primary-500 !bg-primary-50 dark:!bg-primary-900': amendMode }"
-            title="修改上次提交 (Amend)"
-            @click="amendMode = !amendMode"
+            title="更多选项"
+            @click="toggleMoreMenu"
             class="!p-2"
           >
-            <PenLine :size="14" />
+            <MoreVertical :size="14" />
           </Button>
-          <Button
-            variant="text"
-            severity="secondary"
-            title="撤销上次提交"
-            :disabled="repo.operating"
-            @click="repo.undoLastCommit()"
-            class="!p-2"
-          >
-            <RotateCcw :size="14" />
-          </Button>
+          <Menu ref="moreMenuInfo" :model="moreMenuOptions" :popup="true" />
         </div>
         <Button
           v-if="amendMode"
@@ -256,7 +290,7 @@ function openFileInVscode(file: FileChange) {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--p-content-border-color);
 }
 
 .section-header {
@@ -265,8 +299,8 @@ function openFileInVscode(file: FileChange) {
   gap: 6px;
   padding: 8px 12px;
   font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
+  color: var(--p-text-muted-color);
+  background: var(--p-content-hover-background);
   flex-shrink: 0;
 }
 
@@ -277,10 +311,10 @@ function openFileInVscode(file: FileChange) {
 
 .file-count {
   font-size: 11px;
-  background: var(--bg-hover);
+  background: var(--p-content-hover-background);
   padding: 0 6px;
   border-radius: 8px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   line-height: 18px;
 }
 
@@ -318,7 +352,7 @@ function openFileInVscode(file: FileChange) {
 }
 
 .file-item:hover {
-  background: var(--bg-hover);
+  background: var(--p-content-hover-background);
 }
 
 .file-status {
@@ -331,13 +365,13 @@ function openFileInVscode(file: FileChange) {
 }
 
 .file-dir {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   font-size: 11px;
   white-space: nowrap;
 }
 
 .file-name {
-  color: var(--text-primary);
+  color: var(--p-text-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -360,29 +394,29 @@ function openFileInVscode(file: FileChange) {
 .empty-hint {
   padding: 16px;
   text-align: center;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   font-size: 12px;
 }
 
 .commit-area {
   flex-shrink: 0;
   padding: 12px;
-  background: var(--bg-secondary);
+  background: var(--p-content-hover-background);
 }
 
 .commit-input {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  color: var(--p-text-color);
   font-size: 13px;
   font-family: var(--font-ui);
 }
 
 .commit-input:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--p-primary-color);
 }
 
 .commit-input::placeholder {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 </style>

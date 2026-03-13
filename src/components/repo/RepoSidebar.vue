@@ -391,8 +391,8 @@ onUnmounted(() => {
   /* width: var(--sidebar-width); <- 改为行内样式动态设置 */
   position: relative;
   height: 100%;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border-right: 1px solid var(--p-content-border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -412,13 +412,13 @@ onUnmounted(() => {
 }
 
 .sidebar-resizer:hover, .sidebar-resizer.active {
-  background-color: var(--accent-blue);
+  background-color: var(--p-primary-color);
   opacity: 0.5;
 }
 
 .sidebar-tabs {
   display: flex;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--p-content-border-color);
   flex-shrink: 0;
 }
 
@@ -431,22 +431,22 @@ onUnmounted(() => {
   padding: 10px 0;
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   border-bottom: 2px solid transparent;
   transition: color 0.15s, border-color 0.15s;
 }
 
 .sidebar-tab:hover {
-  color: var(--text-primary);
+  color: var(--p-text-color);
 }
 
 .sidebar-tab.active {
-  color: var(--accent-blue);
-  border-bottom-color: var(--accent-blue);
+  color: var(--p-primary-color);
+  border-bottom-color: var(--p-primary-color);
 }
 
 .tab-badge {
-  background: var(--accent-blue);
+  background: var(--p-primary-color);
   color: #fff;
   font-size: 10px;
   padding: 0 5px;
@@ -463,19 +463,19 @@ onUnmounted(() => {
   gap: 6px;
   margin: 8px 12px;
   padding: 5px 8px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-md);
   transition: border-color 0.15s;
   flex-shrink: 0;
 }
 
 .branch-search:focus-within {
-  border-color: var(--accent-blue);
+  border-color: var(--p-primary-color);
 }
 
 .search-icon {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
 
@@ -486,19 +486,19 @@ onUnmounted(() => {
   box-shadow: none !important;
   padding: 0 !important;
   outline: none !important;
-  color: var(--text-primary) !important;
+  color: var(--p-text-color) !important;
   font-size: 12px !important;
   min-width: 0;
 }
 
 .search-input::placeholder {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .branch-empty {
   padding: 8px 12px 8px 28px;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .sidebar-scrollable {
@@ -507,7 +507,7 @@ onUnmounted(() => {
   overflow-y: auto;
   /* 美化主滚动条 */
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--p-content-border-color) transparent;
 }
 
 .sidebar-scrollable::-webkit-scrollbar {
@@ -515,7 +515,7 @@ onUnmounted(() => {
 }
 
 .sidebar-scrollable::-webkit-scrollbar-thumb {
-  background-color: var(--border-default);
+  background-color: var(--p-content-border-color);
   border-radius: 4px;
 }
 
@@ -525,7 +525,7 @@ onUnmounted(() => {
   overflow-x: hidden;
   /* 美化内部滚动条 */
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--p-content-border-color) transparent;
 }
 
 .branch-list-scroller::-webkit-scrollbar {
@@ -533,14 +533,14 @@ onUnmounted(() => {
 }
 
 .branch-list-scroller::-webkit-scrollbar-thumb {
-  background-color: var(--border-default);
+  background-color: var(--p-content-border-color);
   border-radius: 4px;
 }
 
 /* Accordion 覆写 */
 :deep(.p-accordionpanel) {
   border: none !important;
-  border-bottom: 1px solid var(--border-muted) !important;
+  border-bottom: 1px solid var(--p-content-border-color) !important;
   background: transparent !important;
 }
 
@@ -548,11 +548,11 @@ onUnmounted(() => {
   padding: 8px 12px !important;
   background: transparent !important;
   border: none !important;
-  color: var(--text-secondary) !important;
+  color: var(--p-text-muted-color) !important;
 }
 
 :deep(.p-accordionheader:hover) {
-  color: var(--text-primary) !important;
+  color: var(--p-text-color) !important;
 }
 
 :deep(.p-accordioncontent-content) {
@@ -565,7 +565,7 @@ onUnmounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
 }
 
 .section-header-custom {
@@ -587,24 +587,24 @@ onUnmounted(() => {
   gap: 8px;
   padding: 5px 12px 5px 28px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   cursor: pointer;
   transition: background-color 0.1s, color 0.1s;
 }
 
 .branch-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--p-content-hover-background);
+  color: var(--p-text-color);
 }
 
 .branch-item.current {
-  color: var(--accent-blue);
+  color: var(--p-primary-color);
   font-weight: 500;
   cursor: default;
 }
 
 .branch-item.remote {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .branch-name {
@@ -626,13 +626,13 @@ onUnmounted(() => {
 }
 
 .stat-ahead {
-  background: rgba(56, 139, 253, 0.15);
-  color: var(--accent-blue);
+  background: rgba(56, 139, 253, 1);
+  color: #fff; /* 背景变深，文字需要反白以保证可读性 */
 }
 
 .stat-behind {
-  background: rgba(210, 153, 34, 0.15);
-  color: var(--accent-yellow);
+  background: rgba(210, 153, 34, 1);
+  color: #fff; /* 背景变深，文字需要反白以保证可读性 */
 }
 
 .branch-delete {
@@ -649,12 +649,12 @@ onUnmounted(() => {
 }
 
 .branch-item.remote:hover {
-  color: var(--accent-blue);
+  color: var(--p-primary-color);
 }
 
 .merge-hint {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -676,12 +676,12 @@ onUnmounted(() => {
   gap: 8px;
   padding: 5px 12px 5px 28px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   transition: background-color 0.1s;
 }
 
 .stash-item:hover {
-  background: var(--bg-hover);
+  background: var(--p-content-hover-background);
 }
 
 .stash-actions {

@@ -1,73 +1,18 @@
 @import './base.css';
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 500;
-  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--btn-primary-bg);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--btn-primary-hover);
-}
-
-.btn-secondary {
-  background: var(--btn-secondary-bg);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--btn-secondary-hover);
-  border-color: var(--text-muted);
-}
-
-.btn-danger {
-  background: var(--btn-danger-bg);
-  color: #fff;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: var(--btn-danger-hover);
-}
-
-.btn-ghost {
-  color: var(--text-secondary);
-  padding: 4px 8px;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
 .btn-icon {
   padding: 6px;
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .btn-icon:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  color: var(--p-text-color);
+  background: var(--p-content-hover-background);
 }
 
 .badge {
@@ -81,27 +26,27 @@
 
 .badge-blue {
   background: rgba(56, 139, 253, 0.15);
-  color: var(--accent-blue);
+  color: var(--p-primary-500);
 }
 
 .badge-green {
   background: rgba(63, 185, 80, 0.15);
-  color: var(--accent-green);
+  color: #3fb950;
 }
 
 .badge-red {
   background: rgba(248, 81, 73, 0.15);
-  color: var(--accent-red);
+  color: #f85149;
 }
 
 .badge-yellow {
   background: rgba(210, 153, 34, 0.15);
-  color: var(--accent-yellow);
+  color: #d29922;
 }
 
 .badge-purple {
   background: rgba(188, 140, 255, 0.15);
-  color: var(--accent-purple);
+  color: #bc8cff;
 }
 
 .toast-container {
@@ -121,24 +66,26 @@
   box-shadow: var(--shadow-md);
   animation: toast-in 0.25s ease;
   max-width: 360px;
+  background: var(--p-surface-800);
+  color: var(--p-surface-0);
+}
+
+[data-theme="light"] .toast {
+  background: var(--p-surface-0);
+  color: var(--p-surface-900);
+  border: 1px solid var(--p-surface-200);
 }
 
 .toast-success {
-  background: rgba(63, 185, 80, 0.15);
-  border: 1px solid var(--accent-green);
-  color: var(--accent-green);
+  border-left: 4px solid #3fb950;
 }
 
 .toast-error {
-  background: rgba(248, 81, 73, 0.15);
-  border: 1px solid var(--accent-red);
-  color: var(--accent-red);
+  border-left: 4px solid #f85149;
 }
 
 .toast-info {
-  background: rgba(56, 139, 253, 0.15);
-  border: 1px solid var(--accent-blue);
-  color: var(--accent-blue);
+  border-left: 4px solid var(--p-primary-500);
 }
 
 @keyframes toast-in {

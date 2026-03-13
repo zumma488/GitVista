@@ -37,8 +37,8 @@ const repo = useRepoStore()
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  background: var(--bg-canvas);
-  border-top: 1px solid var(--border-default);
+  background: var(--p-content-background);
+  border-top: 1px solid var(--p-content-border-color);
   flex-shrink: 0;
   font-size: 11px;
 }
@@ -54,7 +54,7 @@ const repo = useRepoStore()
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .status-item.path {

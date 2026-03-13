@@ -8,7 +8,13 @@ const currentTheme = ref<Theme>('dark')
 
 function applyTheme(theme: Theme) {
   currentTheme.value = theme
-  document.documentElement.dataset.theme = theme === 'light' ? 'light' : ''
+  if (theme === 'dark') {
+    document.documentElement.classList.add('app-dark')
+    document.documentElement.dataset.theme = 'dark'
+  } else {
+    document.documentElement.classList.remove('app-dark')
+    document.documentElement.dataset.theme = 'light'
+  }
   localStorage.setItem(STORAGE_KEY, theme)
 }
 

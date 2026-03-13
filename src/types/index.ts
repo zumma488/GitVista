@@ -4,6 +4,7 @@ export interface Project {
   last_opened: string | null
   favorite: boolean
   pinned_at: string | null
+  added_at: string | null
 }
 
 export interface RepoInfo {

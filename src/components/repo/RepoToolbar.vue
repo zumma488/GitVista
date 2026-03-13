@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useRepoStore } from '@/stores/repo'
+import Button from 'primevue/button'
 import {
   ArrowLeft,
   GitBranch,
@@ -28,9 +29,9 @@ function repoName(): string {
 <template>
   <div class="toolbar">
     <div class="toolbar-left">
-      <button class="btn btn-ghost" aria-label="返回项目列表" title="返回项目列表" @click="goBack" style="padding: 4px;">
+      <Button variant="text" severity="secondary" aria-label="返回项目列表" title="返回项目列表" @click="goBack" style="padding: 0.5rem;">
         <ArrowLeft :size="18" />
-      </button>
+      </Button>
       <span class="toolbar-divider" />
       <span class="repo-name">{{ repoName() }}</span>
 
@@ -41,58 +42,76 @@ function repoName(): string {
     </div>
 
     <div class="toolbar-right">
-      <button
-        class="btn btn-secondary"
+      <Button
+        severity="secondary"
+        variant="outlined"
+        size="small"
         :disabled="repo.operating"
         title="Fetch"
         @click="repo.fetch()"
+        style="gap: 0.5rem;"
       >
         <RefreshCw :size="14" :class="{ spinning: repo.operating }" />
         Fetch
-      </button>
-      <button
-        class="btn btn-secondary"
+      </Button>
+      <Button
+        severity="secondary"
+        variant="outlined"
+        size="small"
         :disabled="repo.operating"
         title="Pull"
         @click="repo.pull()"
+        style="gap: 0.5rem;"
       >
         <ArrowDownToLine :size="14" />
         Pull
-      </button>
-      <button
-        class="btn btn-secondary"
+      </Button>
+      <Button
+        severity="secondary"
+        variant="outlined"
+        size="small"
         :disabled="repo.operating"
         title="Push"
         @click="repo.push()"
+        style="gap: 0.5rem;"
       >
         <ArrowUpFromLine :size="14" />
         Push
-      </button>
+      </Button>
       <span class="toolbar-divider" />
-      <button
-        class="btn btn-ghost"
+      <Button
+        severity="secondary"
+        variant="outlined"
+        size="small"
         title="打开远端"
         @click="repo.openRemote()"
+        style="gap: 0.5rem;"
       >
         <Globe :size="14" />
         远端
-      </button>
-      <button
-        class="btn btn-ghost"
+      </Button>
+      <Button
+        severity="secondary"
+        variant="outlined"
+        size="small"
         title="打开终端"
         @click="repo.openTerminal()"
+        style="gap: 0.5rem;"
       >
         <Terminal :size="14" />
         终端
-      </button>
-      <button
-        class="btn btn-ghost"
+      </Button>
+      <Button
+        severity="secondary"
+        variant="outlined"
+        size="small"
         title="在 VSCode 中打开"
         @click="repo.openInVscode()"
+        style="gap: 0.5rem;"
       >
         <Code2 :size="14" />
         VSCode
-      </button>
+      </Button>
     </div>
   </div>
 </template>
@@ -104,8 +123,8 @@ function repoName(): string {
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border-bottom: 1px solid var(--p-content-border-color);
   flex-shrink: 0;
 }
 
@@ -123,14 +142,14 @@ function repoName(): string {
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background: var(--border-default);
+  background: var(--p-content-border-color);
   margin: 0 4px;
 }
 
 .repo-name {
   font-weight: 600;
   font-size: 14px;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   margin-right: 4px;
 }
 
@@ -139,11 +158,11 @@ function repoName(): string {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-md);
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   max-width: 520px;
 }
 

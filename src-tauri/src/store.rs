@@ -11,6 +11,8 @@ pub struct Project {
     pub favorite: bool,
     #[serde(default)]
     pub pinned_at: Option<String>,
+    #[serde(default)]
+    pub added_at: Option<String>,
 }
 
 fn store_dir() -> PathBuf {
@@ -61,6 +63,7 @@ pub fn add_project(name: &str, path: &str) -> Result<Vec<Project>, String> {
         last_opened: Some(chrono::Local::now().to_rfc3339()),
         favorite: false,
         pinned_at: None,
+        added_at: Some(chrono::Local::now().to_rfc3339()),
     });
 
     save_projects(&projects)?;

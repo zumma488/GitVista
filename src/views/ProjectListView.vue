@@ -5,6 +5,7 @@ import { useProjectsStore } from '@/stores/projects'
 import { useRepoStore } from '@/stores/repo'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
+import Button from 'primevue/button'
 import {
   FolderGit2,
   Plus,
@@ -23,7 +24,7 @@ import {
 } from 'lucide-vue-next'
 
 type ViewMode = 'card' | 'list'
-type SortMode = 'name' | 'recent' | 'custom'
+type SortMode = 'default' | 'name' | 'recent' | 'custom'
 
 const router = useRouter()
 const store = useProjectsStore()
@@ -35,7 +36,7 @@ const cloneUrl = ref('')
 const cloneTarget = ref('')
 const cloning = ref(false)
 const searchQuery = ref('')
-const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'recent')
+const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'default')
 const customOrder = ref<string[]>(JSON.parse(localStorage.getItem('gitvista-custom-order') || '[]'))
 
 // 监听项目数量变化，保持 customOrder 同步（只追加新项目和移除被删项目，保持当前顺序）
@@ -81,7 +82,7 @@ const filteredProjects = computed(() => {
     })
   }
 
-  // 非自定义排序模式（最近打开 / 名称）
+  // 非自定义排序模式（默认加入时间 / 最近打开 / 名称）
   const pinned = list.filter(p => p.favorite)
   const unpinned = list.filter(p => !p.favorite)
 
@@ -89,8 +90,14 @@ const filteredProjects = computed(() => {
     if (sortMode.value === 'name') {
       return a.name.localeCompare(b.name)
     }
-    const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
-    const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
+    if (sortMode.value === 'recent') {
+      const ta = a.last_opened ? new Date(a.last_opened).getTime() : 0
+      const tb = b.last_opened ? new Date(b.last_opened).getTime() : 0
+      return tb - ta
+    }
+    // default: 按加入时间倒序（最新加入的排最前）
+    const ta = a.added_at ? new Date(a.added_at).getTime() : 0
+    const tb = b.added_at ? new Date(b.added_at).getTime() : 0
     return tb - ta
   }
 
@@ -263,14 +270,14 @@ async function selectCloneTarget() {
           </button>
         </div>
         <span class="header-divider" />
-        <button class="btn btn-primary" @click="handleAddProject">
-          <Plus :size="16" />
+        <Button size="small" @click="handleAddProject">
+          <Plus :size="16" class="mr-2" />
           打开本地仓库
-        </button>
-        <button class="btn btn-secondary" @click="showCloneDialog = true">
-          <Download :size="16" />
+        </Button>
+        <Button size="small" severity="secondary" variant="outlined" @click="showCloneDialog = true">
+          <Download :size="16" class="mr-2" />
           克隆远程仓库
-        </button>
+        </Button>
       </div>
     </header>
 
@@ -286,21 +293,30 @@ async function selectCloneTarget() {
         />
       </div>
       <div class="sort-control">
-        <button
-          class="sort-btn"
-          :class="{ active: sortMode === 'recent' }"
+        <Button
+          size="small"
+          variant="text"
+          :severity="sortMode === 'default' ? 'primary' : 'secondary'"
+          @click="setSortMode('default')"
+        >默认排序</Button>
+        <Button
+          size="small"
+          variant="text"
+          :severity="sortMode === 'recent' ? 'primary' : 'secondary'"
           @click="setSortMode('recent')"
-        >最近打开</button>
-        <button
-          class="sort-btn"
-          :class="{ active: sortMode === 'name' }"
+        >最近打开</Button>
+        <Button
+          size="small"
+          variant="text"
+          :severity="sortMode === 'name' ? 'primary' : 'secondary'"
           @click="setSortMode('name')"
-        >名称</button>
-        <button
-          class="sort-btn"
-          :class="{ active: sortMode === 'custom' }"
+        >名称</Button>
+        <Button
+          size="small"
+          variant="text"
+          :severity="sortMode === 'custom' ? 'primary' : 'secondary'"
           @click="setSortMode('custom')"
-        >自定义排序</button>
+        >自定义排序</Button>
       </div>
     </div>
 
@@ -486,17 +502,17 @@ async function selectCloneTarget() {
                 class="input"
                 readonly
               />
-              <button class="btn btn-secondary" @click="selectCloneTarget">
-                <FolderOpen :size="14" />
+              <Button severity="secondary" variant="outlined" @click="selectCloneTarget">
+                <FolderOpen :size="14" class="mr-2" />
                 浏览
-              </button>
+              </Button>
             </div>
           </div>
           <div class="modal-actions">
-            <button class="btn btn-secondary" @click="showCloneDialog = false">取消</button>
-            <button class="btn btn-primary" :disabled="cloning" @click="handleClone">
+            <Button severity="secondary" variant="text" @click="showCloneDialog = false">取消</Button>
+            <Button :disabled="cloning" @click="handleClone">
               {{ cloning ? '克隆中...' : '开始克隆' }}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -509,7 +525,7 @@ async function selectCloneTarget() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-canvas);
+  background: var(--p-content-background);
 }
 
 /* ===== 搜索排序栏 ===== */
@@ -518,8 +534,8 @@ async function selectCloneTarget() {
   align-items: center;
   gap: 12px;
   padding: 8px 32px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--p-content-background);
+  border-bottom: 1px solid var(--p-content-border-color);
   flex-shrink: 0;
 }
 
@@ -530,18 +546,18 @@ async function selectCloneTarget() {
   flex: 1;
   max-width: 320px;
   padding: 5px 10px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-md);
   transition: border-color 0.15s;
 }
 
 .search-box:focus-within {
-  border-color: var(--accent-blue);
+  border-color: var(--p-primary-color);
 }
 
 .search-box .search-icon {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
 
@@ -550,45 +566,25 @@ async function selectCloneTarget() {
   background: transparent;
   border: none;
   outline: none;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   font-size: 12px;
   min-width: 0;
 }
 
 .search-box .search-input::placeholder {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .sort-control {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.sort-btn {
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  color: var(--text-secondary);
-  transition: background 0.12s, color 0.12s;
-}
-
-.sort-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
-.sort-btn.active {
-  color: var(--accent-blue);
-  background: var(--bg-active);
 }
 
 .search-empty {
   padding: 24px;
   text-align: center;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   font-size: 13px;
 }
 
@@ -598,8 +594,8 @@ async function selectCloneTarget() {
   align-items: center;
   justify-content: space-between;
   padding: 24px 32px;
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-primary);
+  border-bottom: 1px solid var(--p-content-border-color);
+  background: var(--p-content-background);
   flex-shrink: 0;
 }
 
@@ -610,19 +606,19 @@ async function selectCloneTarget() {
 }
 
 .brand-icon {
-  color: var(--accent-blue);
+  color: var(--p-primary-color);
 }
 
 .brand-title {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   line-height: 1.2;
 }
 
 .brand-subtitle {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   margin-top: 2px;
 }
 
@@ -632,18 +628,22 @@ async function selectCloneTarget() {
   gap: 8px;
 }
 
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
 .header-divider {
   width: 1px;
   height: 24px;
-  background: var(--border-default);
+  background: var(--p-content-border-color);
   margin: 0 4px;
 }
 
 /* ===== 布局切换 ===== */
 .view-toggle {
   display: flex;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -654,18 +654,18 @@ async function selectCloneTarget() {
   justify-content: center;
   width: 32px;
   height: 28px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   transition: background-color 0.15s, color 0.15s;
 }
 
 .toggle-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  color: var(--p-text-color);
+  background: var(--p-content-hover-background);
 }
 
 .toggle-btn.active {
-  color: var(--accent-blue);
-  background: var(--bg-active);
+  color: var(--p-primary-inverse-color);
+  background: var(--p-primary-color);
 }
 
 /* ===== 内容区 ===== */
@@ -683,7 +683,7 @@ async function selectCloneTarget() {
   justify-content: center;
   height: 100%;
   gap: 12px;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
 }
 
 .empty-icon {
@@ -693,7 +693,7 @@ async function selectCloneTarget() {
 
 .empty-state h2 {
   font-size: 18px;
-  color: var(--text-primary);
+  color: var(--p-text-color);
 }
 
 .empty-state p {
@@ -714,8 +714,8 @@ async function selectCloneTarget() {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
@@ -723,8 +723,8 @@ async function selectCloneTarget() {
 }
 
 .project-card:hover {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--p-primary-color);
+  box-shadow: 0 0 0 1px var(--p-primary-color);
   transform: translateY(-1px);
 }
 
@@ -756,7 +756,7 @@ async function selectCloneTarget() {
 .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -766,7 +766,7 @@ async function selectCloneTarget() {
 .card-delete {
   flex-shrink: 0;
   opacity: 0;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   transition: opacity 0.15s, color 0.15s;
 }
 
@@ -778,7 +778,7 @@ async function selectCloneTarget() {
 
 .card-pin,
 .list-pin {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
 }
@@ -786,13 +786,13 @@ async function selectCloneTarget() {
 .card-pin.pinned,
 .list-pin.pinned {
   opacity: 1;
-  color: var(--accent-blue);
-  fill: var(--accent-blue);
+  color: var(--p-primary-color);
+  fill: var(--p-primary-color);
 }
 
 .card-move,
 .list-move {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
 }
@@ -806,12 +806,12 @@ async function selectCloneTarget() {
 
 .card-pin:hover,
 .list-pin:hover {
-  color: var(--accent-blue) !important;
+  color: var(--p-primary-color) !important;
 }
 
 .card-move:hover,
 .list-move:hover {
-  color: var(--accent-blue) !important;
+  color: var(--p-primary-color) !important;
 }
 
 .list-move-actions {
@@ -836,7 +836,7 @@ async function selectCloneTarget() {
 
 .card-path {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   font-family: var(--font-mono);
   margin: 4px 0;
   overflow: hidden;
@@ -871,13 +871,13 @@ async function selectCloneTarget() {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
 
 .card-arrow {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -890,7 +890,7 @@ async function selectCloneTarget() {
 .project-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -899,11 +899,11 @@ async function selectCloneTarget() {
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border-bottom: 1px solid var(--p-content-border-color);
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
@@ -912,8 +912,8 @@ async function selectCloneTarget() {
   display: flex;
   align-items: center;
   padding: 10px 16px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-muted);
+  background: var(--p-content-hover-background);
+  border-bottom: 1px solid var(--p-content-border-color);
   cursor: pointer;
   transition: background-color 0.12s;
 }
@@ -923,7 +923,7 @@ async function selectCloneTarget() {
 }
 
 .list-row:hover {
-  background: var(--bg-hover);
+  background: var(--p-content-hover-background);
 }
 
 .list-col-name {
@@ -938,7 +938,7 @@ async function selectCloneTarget() {
   flex: 3;
   min-width: 0;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   font-family: var(--font-mono);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -959,7 +959,7 @@ async function selectCloneTarget() {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   white-space: nowrap;
 }
 
@@ -986,7 +986,7 @@ async function selectCloneTarget() {
 .list-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1002,7 +1002,7 @@ async function selectCloneTarget() {
 
 .list-delete {
   opacity: 0;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   transition: opacity 0.15s, color 0.15s;
 }
 
@@ -1026,8 +1026,8 @@ async function selectCloneTarget() {
 }
 
 .modal {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-hover-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-lg);
   padding: 24px;
   width: 480px;
@@ -1048,24 +1048,24 @@ async function selectCloneTarget() {
 .form-group label {
   display: block;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   margin-bottom: 6px;
 }
 
 .input {
   width: 100%;
   padding: 8px 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
+  color: var(--p-text-color);
   font-size: 13px;
   outline: none;
   transition: border-color 0.15s;
 }
 
 .input:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--p-primary-color);
 }
 
 .input-row {

@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { listen } from '@tauri-apps/api/event'
 import { Minus, Square, X, Copy, Sun, Moon } from 'lucide-vue-next'
+import Button from 'primevue/button'
 import { useTheme } from '@/composables/useTheme'
 import CloseConfirmDialog from '@/components/CloseConfirmDialog.vue'
 
@@ -67,7 +68,8 @@ async function exitApp() {
       <span class="titlebar-title" data-tauri-drag-region="true">GitVista</span>
     </div>
     <div class="titlebar-controls" data-tauri-drag-region="false">
-      <button
+      <Button
+        variant="text" severity="secondary"
         class="titlebar-btn"
         :title="currentTheme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
         @click="toggleTheme"
@@ -75,29 +77,32 @@ async function exitApp() {
       >
         <Sun v-if="currentTheme === 'dark'" :size="14" />
         <Moon v-else :size="14" />
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="text" severity="secondary"
         class="titlebar-btn"
         title="最小化"
         @click="handleMinimize"
       >
         <Minus :size="16" />
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="text" severity="secondary"
         class="titlebar-btn"
         :title="isMaximized ? '还原' : '最大化'"
         @click="handleToggleMaximize"
       >
         <Copy v-if="isMaximized" :size="12" class="restore-icon" />
         <Square v-else :size="12" />
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="text" severity="danger"
         class="titlebar-btn titlebar-btn-close"
         title="关闭"
         @click="triggerClose"
       >
         <X :size="16" />
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -114,7 +119,7 @@ async function exitApp() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-canvas);
+  background: var(--p-content-background);
   flex-shrink: 0;
   position: relative;
   z-index: 9000;
@@ -131,7 +136,7 @@ async function exitApp() {
 .titlebar-title {
   padding-left: 12px;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   pointer-events: none;
   user-select: none;
 }
@@ -143,27 +148,22 @@ async function exitApp() {
 }
 
 .titlebar-btn {
-  width: 46px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
+  width: 46px !important;
+  height: 100% !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: var(--p-text-muted-color) !important;
   -webkit-app-region: no-drag;
 }
 
 .titlebar-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--p-content-hover-background) !important;
+  color: var(--p-text-color) !important;
 }
 
 .titlebar-btn-close:hover {
-  background: #e81123;
-  color: #fff;
+  background: #e81123 !important;
+  color: #fff !important;
 }
 
 .restore-icon {

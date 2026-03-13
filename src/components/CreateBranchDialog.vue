@@ -65,5 +65,5 @@ defineExpose({ show })
 .justify-end { justify-content: flex-end; }
 .gap-2 { gap: 0.5rem; }
 .text-sm { font-size: 13px; }
-.text-surface-500 { color: var(--text-secondary); }
+.text-surface-500 { color: var(--p-text-muted-color); }
 </style>

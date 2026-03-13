@@ -5,7 +5,7 @@
   "identifier": "com.gitvista.app",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:14273",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },

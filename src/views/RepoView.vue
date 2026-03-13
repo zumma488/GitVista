@@ -76,7 +76,7 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--p-content-background);
 }
 
 .repo-body {
@@ -98,7 +98,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .spinning {

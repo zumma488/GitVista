@@ -64,5 +64,5 @@ defineExpose({ show })
 .cursor-pointer { cursor: pointer; }
 .select-none { user-select: none; }
 .text-sm { font-size: 13px; }
-.text-surface-500 { color: var(--text-secondary); }
+.text-surface-500 { color: var(--p-text-muted-color); }
 </style>

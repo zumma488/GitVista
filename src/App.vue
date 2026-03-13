@@ -3,12 +3,14 @@ import { RouterView } from 'vue-router'
 import { useRepoStore } from '@/stores/repo'
 import { useShortcuts } from '@/composables/useShortcuts'
 import TitleBar from '@/components/TitleBar.vue'
+import ConfirmPopup from 'primevue/confirmpopup'
 
 const repo = useRepoStore()
 useShortcuts()
 </script>
 
 <template>
+  <ConfirmPopup />
   <TitleBar />
   <div class="app-content">
     <RouterView />

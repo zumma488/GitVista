@@ -64,10 +64,10 @@ defineExpose({ open, close })
   transition: background-color 0.1s;
 }
 .custom-ctx-menu :deep(.p-menuitem-content:hover) {
-  background: var(--bg-hover) !important;
+  background: var(--p-content-hover-background) !important;
 }
 .text-red-500 {
-  color: var(--accent-red) !important;
+  color: var(--p-red-500) !important;
 }
 .text-red-500:hover {
   background: rgba(248, 81, 73, 0.12) !important;

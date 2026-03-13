@@ -46,7 +46,7 @@ function statusColor(status: string): string {
     case 'added': return 'var(--accent-green)'
     case 'deleted': return 'var(--accent-red)'
     case 'renamed': return 'var(--accent-purple)'
-    default: return 'var(--text-muted)'
+    default: return 'var(--p-text-muted-color)'
   }
 }
 
@@ -193,19 +193,19 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   gap: 6px;
   margin: 8px 12px;
   padding: 5px 8px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: var(--radius-md);
   flex-shrink: 0;
   transition: border-color 0.15s;
 }
 
 .history-search:focus-within {
-  border-color: var(--accent-blue);
+  border-color: var(--p-primary-color);
 }
 
 .search-icon {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
 
@@ -216,13 +216,13 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   box-shadow: none !important;
   padding: 0 !important;
   outline: none !important;
-  color: var(--text-primary) !important;
+  color: var(--p-text-color) !important;
   font-size: 13px !important;
   min-width: 0;
 }
 
 .search-input::placeholder {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .commit-list-container {
@@ -252,11 +252,11 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
 }
 
 .commit-item:hover {
-  background: var(--bg-hover);
+  background: var(--p-content-hover-background);
 }
 
 .commit-item.selected {
-  background: var(--bg-active);
+  background: var(--p-highlight-background);
 }
 
 .commit-dot {
@@ -266,7 +266,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent-blue);
+  background: var(--p-primary-color);
   z-index: 1;
   flex-shrink: 0;
 }
@@ -281,7 +281,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   top: 22px;
   bottom: 0;
   width: 2px;
-  background: var(--border-default);
+  background: var(--p-content-border-color);
 }
 
 .commit-item.is-last .commit-line {
@@ -303,7 +303,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
 .commit-message {
   flex: 1;
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--p-text-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -313,7 +313,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--accent-blue);
+  color: var(--p-primary-color);
   background: rgba(56, 139, 253, 0.1);
   padding: 1px 6px;
   border-radius: var(--radius-sm);
@@ -331,20 +331,20 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .empty-hint {
   padding: 24px;
   text-align: center;
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
   font-size: 12px;
 }
 
 .commit-detail {
   flex-shrink: 0;
   max-height: 45%;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--p-content-border-color);
   display: flex;
   flex-direction: column;
 }
@@ -354,26 +354,26 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: var(--bg-tertiary);
+  background: var(--p-content-hover-background);
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
 
 .detail-hash {
   font-family: var(--font-mono);
-  color: var(--accent-blue);
+  color: var(--p-primary-color);
   font-weight: 400;
   margin-left: auto;
 }
 
 .detail-action {
-  color: var(--text-muted);
+  color: var(--p-text-muted-color);
 }
 
 .detail-action:hover {
-  color: var(--text-primary) !important;
+  color: var(--p-text-color) !important;
 }
 
 .detail-files {
@@ -392,7 +392,7 @@ function showCommitCtxMenu(e: MouseEvent, hash: string) {
 }
 
 .detail-file:hover {
-  background: var(--bg-hover);
+  background: var(--p-content-hover-background);
 }
 
 .file-status-badge {
