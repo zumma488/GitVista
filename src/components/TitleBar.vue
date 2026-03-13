@@ -5,11 +5,13 @@ import { listen } from '@tauri-apps/api/event'
 import { Minus, Square, X, Copy, Sun, Moon } from 'lucide-vue-next'
 import Button from 'primevue/button'
 import { useTheme } from '@/composables/useTheme'
+import { useSettings } from '@/composables/useSettings'
 import CloseConfirmDialog from '@/components/CloseConfirmDialog.vue'
 
 const appWindow = getCurrentWindow()
 const isMaximized = ref(false)
 const { currentTheme, toggleTheme } = useTheme()
+const { settings } = useSettings()
 const closeDialog = ref<InstanceType<typeof CloseConfirmDialog>>()
 
 async function syncMaximized() {
@@ -42,10 +44,10 @@ async function handleToggleMaximize() {
 }
 
 function triggerClose() {
-  const savedAction = localStorage.getItem('close_action')
-  if (savedAction === 'minimize') {
+  const action = settings.value.closeAction
+  if (action === 'minimize') {
     minimizeToTray()
-  } else if (savedAction === 'exit') {
+  } else if (action === 'exit') {
     exitApp()
   } else {
     closeDialog.value?.show()

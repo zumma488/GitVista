@@ -3,9 +3,11 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore } from '@/stores/projects'
 import { useRepoStore } from '@/stores/repo'
+import { useSettings, type ViewMode, type SortMode } from '@/composables/useSettings'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 import Button from 'primevue/button'
+import SettingsDrawer from '@/components/SettingsDrawer.vue'
 import {
   FolderGit2,
   Plus,
@@ -21,23 +23,23 @@ import {
   Pin,
   ArrowUp,
   ArrowDown,
+  Settings,
 } from 'lucide-vue-next'
-
-type ViewMode = 'card' | 'list'
-type SortMode = 'default' | 'name' | 'recent' | 'custom'
 
 const router = useRouter()
 const store = useProjectsStore()
 const repo = useRepoStore()
+const { settings, update } = useSettings()
 
-const viewMode = ref<ViewMode>((localStorage.getItem('gitvista-view-mode') as ViewMode) || 'card')
+const viewMode = computed(() => settings.value.viewMode)
+const sortMode = computed(() => settings.value.sortMode)
 const showCloneDialog = ref(false)
 const cloneUrl = ref('')
 const cloneTarget = ref('')
 const cloning = ref(false)
 const searchQuery = ref('')
-const sortMode = ref<SortMode>((localStorage.getItem('gitvista-sort-mode') as SortMode) || 'default')
 const customOrder = ref<string[]>(JSON.parse(localStorage.getItem('gitvista-custom-order') || '[]'))
+const settingsDrawer = ref<InstanceType<typeof SettingsDrawer>>()
 
 // 监听项目数量变化，保持 customOrder 同步（只追加新项目和移除被删项目，保持当前顺序）
 import { watch } from 'vue'
@@ -106,13 +108,11 @@ const filteredProjects = computed(() => {
 })
 
 function setViewMode(mode: ViewMode) {
-  viewMode.value = mode
-  localStorage.setItem('gitvista-view-mode', mode)
+  update('viewMode', mode)
 }
 
 function setSortMode(mode: SortMode) {
-  sortMode.value = mode
-  localStorage.setItem('gitvista-sort-mode', mode)
+  update('sortMode', mode)
 
   // 如果首次切换到自定义排序且没有数据，按照当前列表的顺序初始化 customOrder
   if (mode === 'custom' && customOrder.value.length === 0) {
@@ -278,6 +278,10 @@ async function selectCloneTarget() {
           <Download :size="16" class="mr-2" />
           克隆远程仓库
         </Button>
+        <span class="header-divider" />
+        <button class="settings-btn" title="设置" @click="settingsDrawer?.show()">
+          <Settings :size="18" />
+        </button>
       </div>
     </header>
 
@@ -517,6 +521,8 @@ async function selectCloneTarget() {
         </div>
       </div>
     </Teleport>
+
+    <SettingsDrawer ref="settingsDrawer" />
   </div>
 </template>
 
@@ -637,6 +643,23 @@ async function selectCloneTarget() {
   height: 24px;
   background: var(--p-content-border-color);
   margin: 0 4px;
+}
+
+.settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--p-border-radius);
+  color: var(--p-text-muted-color);
+  transition: background-color 0.15s, color 0.15s, transform 0.3s;
+}
+
+.settings-btn:hover {
+  color: var(--p-text-color);
+  background: var(--p-content-hover-background);
+  transform: rotate(45deg);
 }
 
 /* ===== 布局切换 ===== */

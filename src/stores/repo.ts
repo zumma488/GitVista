@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { useSettings } from '@/composables/useSettings'
 import type { RepoInfo, FileChange, BranchInfo, CommitInfo, CommitFile, StashEntry, Toast } from '@/types'
 
 export interface BranchStat {
@@ -77,10 +78,11 @@ export const useRepoStore = defineStore('repo', () => {
   }
 
   async function refreshHistory() {
+    const { settings } = useSettings()
     try {
       commits.value = await invoke<CommitInfo[]>('get_commit_history', {
         path: path.value,
-        count: 100,
+        count: settings.value.commitHistoryCount,
       })
     } catch (e) {
       showToast('error', `获取提交历史失败: ${e}`)
@@ -158,9 +160,11 @@ export const useRepoStore = defineStore('repo', () => {
   }
 
   async function pull() {
+    const { settings } = useSettings()
     operating.value = true
     try {
-      const result = await invoke<string>('git_pull', { path: path.value })
+      const cmd = settings.value.pullMode === 'rebase' ? 'pull_rebase' : 'git_pull'
+      const result = await invoke<string>(cmd, { path: path.value })
       showToast('success', result || '拉取成功')
       await refresh()
     } catch (e) {

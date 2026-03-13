@@ -3,9 +3,11 @@ import { ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
+import { useSettings } from '@/composables/useSettings'
 
 const visible = ref(false)
 const rememberChoice = ref(false)
+const { update } = useSettings()
 
 const emit = defineEmits<{
   (e: 'minimize-to-tray'): void
@@ -19,7 +21,7 @@ function show() {
 
 function handleMinimize() {
   if (rememberChoice.value) {
-    localStorage.setItem('close_action', 'minimize')
+    update('closeAction', 'minimize')
   }
   visible.value = false
   emit('minimize-to-tray')
@@ -27,7 +29,7 @@ function handleMinimize() {
 
 function handleExit() {
   if (rememberChoice.value) {
-    localStorage.setItem('close_action', 'exit')
+    update('closeAction', 'exit')
   }
   visible.value = false
   emit('exit')
